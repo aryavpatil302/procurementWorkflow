@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Procurement Requests</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css" />
+  <style>
+    body { max-width: 1100px; margin: 0 auto; padding: 1rem 2rem; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; border-bottom: 2px solid var(--pico-primary); padding-bottom: 0.75rem; }
+    header h1 { margin: 0; font-size: 1.4rem; }
+    header small { color: var(--pico-muted-color); font-size: 0.8rem; }
+    .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .filter-bar button { padding: 0.3rem 0.9rem; font-size: 0.85rem; }
+    .badge { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 99px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge-low      { background: #d1fae5; color: #065f46; }
+    .badge-medium   { background: #fef3c7; color: #92400e; }
+    .badge-high     { background: #fee2e2; color: #991b1b; }
+    .badge-critical { background: #7f1d1d; color: #fff; }
+    .badge-pending  { background: #e0e7ff; color: #3730a3; }
+    .badge-approved { background: #d1fae5; color: #065f46; }
+    .badge-rejected { background: #fee2e2; color: #991b1b; }
+    .badge-cancelled{ background: #f3f4f6; color: #6b7280; }
+    table { font-size: 0.9rem; }
+    th { white-space: nowrap; }
+    .action-row { display: flex; gap: 0.75rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .action-row button { margin: 0; }
+    .back-link { cursor: pointer; color: var(--pico-primary); font-size: 0.9rem; margin-bottom: 1rem; display: inline-block; }
+    .back-link:hover { text-decoration: underline; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2rem; }
+    .detail-grid .full-width { grid-column: 1 / -1; }
+    .section-heading { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--pico-muted-color); border-bottom: 1px solid var(--pico-muted-border-color); margin: 1.25rem 0 0.5rem; padding-bottom: 0.25rem; }
+    .field-label { font-size: 0.75rem; color: var(--pico-muted-color); margin-bottom: 0.1rem; margin-top: 0.6rem; }
+    .field-value { font-size: 0.95rem; font-weight: 500; }
+    .flags-list { list-style: disc; padding-left: 1.2rem; margin: 0.25rem 0; font-size: 0.9rem; }
+    .approvers-list { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.25rem; }
+    .approver-chip { background: var(--pico-secondary-background); border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 0.15rem 0.5rem; font-size: 0.8rem; font-family: monospace; }
+    .qs-section-title { font-weight: 600; margin: 1.25rem 0 0.5rem; border-bottom: 1px solid var(--pico-muted-border-color); padding-bottom: 0.25rem; }
+    .qs-question { margin-bottom: 1.25rem; }
+    .qs-question label { font-size: 0.9rem; font-weight: 500; display: block; margin-bottom: 0.4rem; }
+    .qs-question .q-id { font-size: 0.75rem; color: var(--pico-muted-color); font-family: monospace; margin-right: 0.3rem; }
+    .qs-stub-note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: #92400e; margin-bottom: 1.5rem; }
+    .radio-group { display: flex; gap: 1.5rem; }
+    .radio-group label { font-weight: normal; font-size: 0.9rem; display: flex; align-items: center; gap: 0.35rem; }
+    .empty-state { text-align: center; color: var(--pico-muted-color); padding: 3rem 0; }
+    #view-detail, #view-questionnaire { display: none; }
+    .error-banner { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem; }
+    .loading { color: var(--pico-muted-color); font-style: italic; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Procurement Requests</h1>
+  <small id="header-count"></small>
+</header>
+
+<div id="error-container"></div>
+
+<!-- ── View 1: Request List ─────────────────────────────────────────────── -->
+<section id="view-list">
+  <div class="filter-bar">
+    <button id="filter-all"       onclick="setFilter('all')"       class="outline">All</button>
+    <button id="filter-pending"   onclick="setFilter('pending')"   class="outline">Pending</button>
+    <button id="filter-approved"  onclick="setFilter('approved')"  class="outline">Approved</button>
+    <button id="filter-rejected"  onclick="setFilter('rejected')"  class="outline">Rejected</button>
+    <button id="filter-cancelled" onclick="setFilter('cancelled')" class="outline">Cancelled</button>
+  </div>
+  <div id="list-container">
+    <p class="loading">Loading requests...</p>
+  </div>
+</section>
+
+<!-- ── View 2: Request Detail ──────────────────────────────────────────── -->
+<section id="view-detail">
+  <span class="back-link" onclick="showView('list')">← Back to list</span>
+  <div id="detail-container"></div>
+</section>
+
+<!-- ── View 3: Questionnaire ───────────────────────────────────────────── -->
+<section id="view-questionnaire">
+  <span class="back-link" id="qs-back-link">← Back to request</span>
+  <div id="questionnaire-container"></div>
+</section>
+
+<script>
+  // ── Config ─────────────────────────────────────────────────────────────────
+  // API_KEY matches the API_KEY value in your .env file (default: dev-key-change-me)
+  // For local demo only — never ship this in a shared or public deployment.
+  const API_BASE = "http://localhost:8080";
+  const API_KEY  = "dev-key-change-me";
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const state = {
+    requests:     [],        // full list from GET /requests
+    activeFilter: "all",     // "all" | "pending" | "approved" | "rejected" | "cancelled"
+    currentId:    null,      // id of request shown in detail/questionnaire view
+  };
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => {
+    loadRequests();
+  });
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
+
+  async function loadRequests() {
+    clearError();
+    try {
+      const resp = await fetch(`${API_BASE}/requests`);
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      state.requests = await resp.json();
+      renderList();
+    } catch (err) {
+      showError(`Could not load requests: ${err.message}. Is the server running on port 8000?`);
+    }
+  }
+
+  async function updateStatus(id, status) {
+    clearError();
+    try {
+      const resp = await fetch(`${API_BASE}/requests/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key":    API_KEY,
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!resp.ok) {
+        const detail = await resp.json().catch(() => ({}));
+        throw new Error(detail.detail || `Server returned ${resp.status}`);
+      }
+      const updated = await resp.json();
+      // Patch the cached list in place so we don't need a full reload
+      const idx = state.requests.findIndex(r => r.id === id);
+      if (idx !== -1) state.requests[idx] = updated;
+      showDetail(id); // re-render detail with new status
+    } catch (err) {
+      showError(`Status update failed: ${err.message}`);
+    }
+  }
+
+  async function showQuestionnaire(id) {
+    clearError();
+    state.currentId = id;
+    document.getElementById("qs-back-link").onclick = () => showDetail(id);
+    try {
+      const resp = await fetch(`${API_BASE}/requests/${id}/questionnaire`);
+      if (!resp.ok) {
+        const detail = await resp.json().catch(() => ({}));
+        throw new Error(detail.detail || `Server returned ${resp.status}`);
+      }
+      const data = await resp.json();
+      renderQuestionnaire(data);
+      showView("questionnaire");
+    } catch (err) {
+      showError(`Could not load questionnaire: ${err.message}`);
+    }
+  }
+
+  // ── View switching ─────────────────────────────────────────────────────────
+
+  function showView(name) {
+    ["list", "detail", "questionnaire"].forEach(v => {
+      document.getElementById(`view-${v}`).style.display = v === name ? "block" : "none";
+    });
+  }
+
+  function showDetail(id) {
+    const request = state.requests.find(r => r.id === id);
+    if (!request) return;
+    state.currentId = id;
+    renderDetail(request);
+    showView("detail");
+  }
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
+
+  function renderList() {
+    const filtered = state.activeFilter === "all"
+      ? state.requests
+      : state.requests.filter(r => r.status === state.activeFilter);
+
+    // Update filter button styles
+    ["all", "pending", "approved", "rejected", "cancelled"].forEach(f => {
+      const btn = document.getElementById(`filter-${f}`);
+      btn.className = f === state.activeFilter ? "" : "outline";
+    });
+
+    // Update header count
+    document.getElementById("header-count").textContent =
+      `${filtered.length} of ${state.requests.length} requests`;
+
+    const container = document.getElementById("list-container");
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<p class="empty-state">No ${state.activeFilter === "all" ? "" : state.activeFilter + " "}requests found.</p>`;
+      return;
+    }
+
+    const rows = filtered.map(request => `
+      <tr>
+        <td><strong>${esc(request.supplier_name)}</strong></td>
+        <td>${formatCurrency(request.spend_amount)}<br><small>${esc(request.spend_type)}</small></td>
+        <td>${esc(request.category)}</td>
+        <td>${riskBadge(request.risk_label)}</td>
+        <td>${statusBadge(request.status)}</td>
+        <td style="font-size:0.8rem">${(request.required_approvers || []).join(", ") || "—"}</td>
+        <td style="font-size:0.8rem;white-space:nowrap">${formatDate(request.created_at)}</td>
+        <td><button class="outline" style="padding:0.25rem 0.7rem;font-size:0.8rem" onclick="showDetail('${esc(request.id)}')">View</button></td>
+      </tr>
+    `).join("");
+
+    container.innerHTML = `
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Supplier</th>
+              <th>Spend</th>
+              <th>Category</th>
+              <th>Risk</th>
+              <th>Status</th>
+              <th>Approvers Needed</th>
+              <th>Submitted</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderDetail(request) {
+    const canApprove = request.status === "pending";
+    const canReject  = request.status === "pending";
+    const canCancel  = ["pending", "approved"].includes(request.status);
+
+    const flagsHtml = (request.policy_flags || []).length > 0
+      ? `<ul class="flags-list">${request.policy_flags.map(f => `<li>${esc(f)}</li>`).join("")}</ul>`
+      : `<span style="color:var(--pico-muted-color);font-size:0.9rem">None</span>`;
+
+    const approversHtml = (request.required_approvers || []).length > 0
+      ? `<div class="approvers-list">${request.required_approvers.map(a => `<span class="approver-chip">${esc(a)}</span>`).join("")}</div>`
+      : `<span style="color:var(--pico-muted-color);font-size:0.9rem">None</span>`;
+
+    document.getElementById("detail-container").innerHTML = `
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+        <h2 style="margin:0">${esc(request.supplier_name)}</h2>
+        ${statusBadge(request.status)}
+      </div>
+
+      <div class="detail-grid">
+
+        <div>
+          <p class="section-heading">Request Details</p>
+
+          <p class="field-label">Spend Amount</p>
+          <p class="field-value">${formatCurrency(request.spend_amount)} &nbsp;<small style="font-weight:normal">(${esc(request.spend_type)})</small></p>
+
+          <p class="field-label">Category</p>
+          <p class="field-value">${esc(request.category)}</p>
+
+          <p class="field-label">Data Access</p>
+          <p class="field-value">${esc(request.data_access)}</p>
+
+          <p class="field-label">New Supplier?</p>
+          <p class="field-value">${request.is_new_supplier ? "Yes" : "No"}</p>
+
+          ${request.supplier_website ? `
+            <p class="field-label">Supplier Website</p>
+            <p class="field-value"><a href="${esc(request.supplier_website)}" target="_blank">${esc(request.supplier_website)}</a></p>
+          ` : ""}
+
+          ${request.cost_center ? `
+            <p class="field-label">Cost Center</p>
+            <p class="field-value">${esc(request.cost_center)}</p>
+          ` : ""}
+
+          ${request.contract_expiry_date ? `
+            <p class="field-label">Contract Expiry</p>
+            <p class="field-value">${esc(request.contract_expiry_date)}</p>
+          ` : ""}
+        </div>
+
+        <div>
+          <p class="section-heading">Requester</p>
+
+          <p class="field-label">Name</p>
+          <p class="field-value">${esc(request.requester_name)}</p>
+
+          <p class="field-label">Department</p>
+          <p class="field-value">${esc(request.department)}</p>
+
+          <p class="section-heading">Risk Assessment</p>
+
+          <p class="field-label">Inherent Risk Score</p>
+          <p class="field-value">${riskBadge(request.risk_label)} &nbsp; ${request.inherent_risk_score !== null ? request.inherent_risk_score.toFixed(3) : "—"}</p>
+
+          <p class="field-label">Questionnaire Depth</p>
+          <p class="field-value" style="font-family:monospace;font-size:0.9rem">${esc(request.questionnaire_depth || "—")}</p>
+
+          <p class="section-heading">Submitted</p>
+          <p class="field-value" style="font-size:0.9rem">${formatDate(request.created_at)}</p>
+        </div>
+
+        <div class="full-width">
+          <p class="section-heading">Business Justification</p>
+          <p class="field-value" style="font-weight:normal">${esc(request.business_justification)}</p>
+        </div>
+
+        <div class="full-width">
+          <p class="section-heading">Policy</p>
+          <p class="field-label">Required Approvers</p>
+          ${approversHtml}
+          <p class="field-label" style="margin-top:0.75rem">Policy Flags</p>
+          ${flagsHtml}
+        </div>
+
+      </div>
+
+      <div class="action-row">
+        ${request.questionnaire_depth ? `<button class="outline" onclick="showQuestionnaire('${esc(request.id)}')">View Supplier Questionnaire</button>` : ""}
+        ${canApprove ? `<button onclick="updateStatus('${esc(request.id)}', 'approved')" style="background:var(--pico-ins-color);border-color:var(--pico-ins-color)">Approve</button>` : ""}
+        ${canReject  ? `<button class="secondary" onclick="updateStatus('${esc(request.id)}', 'rejected')">Reject</button>` : ""}
+        ${canCancel  ? `<button class="outline secondary" onclick="updateStatus('${esc(request.id)}', 'cancelled')">Cancel</button>` : ""}
+      </div>
+    `;
+  }
+
+  function renderQuestionnaire(data) {
+    // Group questions by section
+    const sections = [];
+    let currentSection = null;
+    for (const q of data.questions) {
+      if (!currentSection || currentSection.name !== q.section) {
+        currentSection = { name: q.section, questions: [] };
+        sections.push(currentSection);
+      }
+      currentSection.questions.push(q);
+    }
+
+    const depthLabel = {
+      basic: "Basic",
+      standard: "Standard",
+      deep_due_diligence: "Deep Due Diligence",
+    }[data.questionnaire_depth] || data.questionnaire_depth;
+
+    const sectionsHtml = sections.map(section => `
+      <h4 class="qs-section-title">${esc(section.name)}</h4>
+      ${section.questions.map(q => renderQuestion(q)).join("")}
+    `).join("");
+
+    document.getElementById("questionnaire-container").innerHTML = `
+      <div style="display:flex;align-items:baseline;gap:1rem;margin-bottom:0.5rem">
+        <h2 style="margin:0">Supplier Questionnaire</h2>
+        <span style="color:var(--pico-muted-color);font-size:0.9rem">${esc(data.supplier_name)}</span>
+      </div>
+      <p style="color:var(--pico-muted-color);font-size:0.9rem;margin-bottom:1rem">
+        Depth: <strong>${esc(depthLabel)}</strong> &nbsp;·&nbsp; ${data.total_questions} questions
+      </p>
+      <div class="qs-stub-note">
+        📋 This questionnaire would be sent to the supplier via a token-gated link.
+        Response collection is scoped to POC 2 (Supplier Portal). Fields below are read-only.
+      </div>
+      ${sectionsHtml}
+    `;
+  }
+
+  function renderQuestion(q) {
+    let inputHtml;
+    if (q.type === "yes_no") {
+      inputHtml = `
+        <div class="radio-group">
+          <label><input type="radio" name="${esc(q.id)}" disabled /> Yes</label>
+          <label><input type="radio" name="${esc(q.id)}" disabled /> No</label>
+        </div>`;
+    } else if (q.type === "upload") {
+      inputHtml = `<input type="file" disabled style="opacity:0.5" />`;
+    } else {
+      inputHtml = `<textarea rows="3" disabled placeholder="Supplier response..." style="resize:none"></textarea>`;
+    }
+
+    return `
+      <div class="qs-question">
+        <label>
+          <span class="q-id">${esc(q.id)}</span>${esc(q.text)}
+          ${q.required ? "" : ' <small style="font-weight:normal;color:var(--pico-muted-color)">(optional)</small>'}
+        </label>
+        ${inputHtml}
+      </div>
+    `;
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function setFilter(status) {
+    state.activeFilter = status;
+    renderList();
+  }
+
+  function riskBadge(risk_label) {
+    if (!risk_label) return "";
+    return `<span class="badge badge-${esc(risk_label)}">${esc(risk_label)}</span>`;
+  }
+
+  function statusBadge(status) {
+    if (!status) return "";
+    return `<span class="badge badge-${esc(status)}">${esc(status)}</span>`;
+  }
+
+  function formatCurrency(amount) {
+    if (amount === null || amount === undefined) return "—";
+    return `£${Number(amount).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  function formatDate(iso_string) {
+    if (!iso_string) return "—";
+    return new Date(iso_string).toLocaleString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+  }
+
+  // Minimal XSS guard — escapes HTML special chars before inserting into innerHTML
+  function esc(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function showError(msg) {
+    document.getElementById("error-container").innerHTML =
+      `<div class="error-banner">${esc(msg)}</div>`;
+  }
+
+  function clearError() {
+    document.getElementById("error-container").innerHTML = "";
+  }
+</script>
+</body>
+</html>

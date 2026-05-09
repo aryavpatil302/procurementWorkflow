@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Procurement Assistant</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #f4f4f4;
+  --white:      #ffffff;
+  --border:     #e4e4e4;
+  --border-md:  #d0d0d0;
+  --text:       #111111;
+  --muted:      #666666;
+  --light:      #aaaaaa;
+  --accent:     #111111;
+  --user-bg:    #eeeeee;
+  --success:    #16a34a;
+  --success-bg: #f0fdf4;
+  --warn:       #d97706;
+  --warn-bg:    #fffbeb;
+  --danger:     #dc2626;
+  --r:          8px;
+}
+
+html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; }
+
+/* ── Shell ── */
+#app { display: flex; flex-direction: column; height: 100vh; max-width: 960px; margin: 0 auto; background: var(--white); border-left: 1px solid var(--border); border-right: 1px solid var(--border); position: relative; overflow: hidden; }
+
+/* Header */
+#hdr { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.hdr-brand { display: flex; align-items: center; gap: 10px; }
+.hdr-icon { width: 30px; height: 30px; background: #111; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
+.hdr-name { font-size: 14.5px; font-weight: 600; }
+.hdr-sub { font-size: 11.5px; color: var(--muted); }
+#new-btn { padding: 6px 13px; background: transparent; border: 1px solid var(--border-md); border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text); transition: background .12s; }
+#new-btn:hover { background: var(--bg); }
+
+/* Messages */
+#msgs { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: thin; scrollbar-color: #ddd transparent; }
+#msgs::-webkit-scrollbar { width: 4px; }
+#msgs::-webkit-scrollbar-thumb { background: #ddd; border-radius: 99px; }
+
+.msg { display: flex; gap: 10px; max-width: 88%; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+.msg.agent { align-self: flex-start; }
+.msg-av { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-top: 3px; }
+.msg.agent .msg-av { background: #111; color: #fff; }
+.msg.user .msg-av { background: #ddd; color: #555; }
+.msg-bub { padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.65; }
+.msg.agent .msg-bub { background: var(--white); border: 1px solid var(--border); border-radius: 4px 12px 12px 12px; }
+.msg.user .msg-bub { background: var(--user-bg); border-radius: 12px 4px 12px 12px; }
+
+/* Typing */
+.dots { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
+.dots span { width: 6px; height: 6px; background: #bbb; border-radius: 50%; animation: bop 1.2s infinite; }
+.dots span:nth-child(2) { animation-delay: .2s; }
+.dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes bop { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+
+/* Input */
+#input-area { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: flex-end; background: var(--white); }
+#user-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border-md); border-radius: 8px; font-size: 14px; font-family: inherit; resize: none; background: var(--white); color: var(--text); outline: none; max-height: 120px; transition: border-color .12s; }
+#user-input:focus { border-color: #aaa; }
+#user-input::placeholder { color: var(--light); }
+#send-btn { width: 36px; height: 36px; background: var(--accent); border: none; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .12s; }
+#send-btn:hover { background: #333; }
+#send-btn svg { width: 15px; height: 15px; fill: #fff; }
+
+/* Empty state */
+.empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon { font-size: 34px; margin-bottom: 12px; }
+.empty h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.empty p { font-size: 13.5px; max-width: 300px; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-top: 18px; }
+.chip { padding: 7px 13px; background: var(--white); border: 1px solid var(--border-md); border-radius: 99px; font-size: 13px; cursor: pointer; transition: all .12s; }
+.chip:hover { border-color: #aaa; background: var(--bg); }
+
+/* Completion card */
+.cc { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; }
+.cc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cc-chk { width: 26px; height: 26px; background: var(--success-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--success); font-size: 13px; }
+.cc-ttl { font-weight: 700; font-size: 14.5px; }
+.cc-id { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.cc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.cc-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.cc-val { font-size: 13.5px; font-weight: 500; margin-top: 2px; }
+.rbadge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 700; }
+.r-low { background: var(--success-bg); color: var(--success); }
+.r-med { background: var(--warn-bg); color: var(--warn); }
+.r-hi  { background: #fef2f2; color: var(--danger); }
+.cc-flags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.cc-flag { padding: 3px 9px; background: var(--warn-bg); color: var(--warn); border: 1px solid #fde68a; border-radius: 99px; font-size: 11.5px; }
+
+/* ── Overlay (questionnaire only) ── */
+.overlay { position: absolute; inset: 0; z-index: 200; overflow-y: auto; }
+.overlay.hidden { display: none; }
+
+/* ── Inline discovery card ── */
+.disc-card { border: 1px solid var(--border); border-radius: 4px 12px 12px 12px; padding: 16px 18px; width: 100%; }
+.disc-card-ttl { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.disc-card-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+.disc-sec-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin-bottom: 8px; }
+.disc-trusted { margin-bottom: 14px; }
+.disc-tr { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px; margin-bottom: 6px; cursor: pointer; transition: border-color .12s; }
+.disc-tr:hover { border-color: var(--border-md); }
+.disc-tr-logo { font-size: 15px; width: 28px; height: 28px; background: var(--bg); border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.disc-tr-info { flex: 1; }
+.disc-tr-name { font-weight: 600; font-size: 13px; }
+.disc-tr-team { font-size: 11.5px; color: var(--muted); }
+.disc-tr-badge { padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; background: var(--success-bg); color: var(--success); border: 1px solid #bbf7d0; white-space: nowrap; }
+.disc-alts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 16px; }
+.disc-alt { padding: 10px 11px; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; transition: border-color .12s; }
+.disc-alt:hover { border-color: var(--border-md); }
+.disc-alt-logo { font-size: 15px; margin-bottom: 4px; }
+.disc-alt-name { font-weight: 600; font-size: 12.5px; }
+.disc-alt-vendor { font-size: 11px; color: var(--muted); }
+.disc-alt-desc { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.disc-actions { display: flex; align-items: center; gap: 14px; padding-top: 4px; }
+.disc-cont-btn { padding: 9px 16px; background: var(--accent); color: #fff; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 500; transition: background .12s; white-space: nowrap; }
+.disc-cont-btn:hover { background: #333; }
+.disc-alt-note { font-size: 12px; color: var(--muted); }
+
+/* ── Questionnaire ── */
+#questionnaire { background: rgba(0,0,0,0.35); display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px 40px; }
+.q-modal { background: var(--white); border-radius: 12px; width: 100%; max-width: 620px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); display: flex; flex-direction: column; max-height: calc(100% - 48px); overflow: hidden; }
+
+.q-hdr { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+.q-title { font-size: 17px; font-weight: 700; }
+.q-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+.q-close { background: none; border: none; font-size: 19px; cursor: pointer; color: var(--muted); padding: 0 4px; }
+.q-close:hover { color: var(--text); }
+
+.q-prog { padding: 13px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.q-dots { display: flex; gap: 6px; }
+.q-dot { width: 7px; height: 7px; border-radius: 50%; background: #e0e0e0; transition: background .2s; }
+.q-dot.on { background: #111; }
+.q-slbl { font-size: 13.5px; font-weight: 600; }
+.q-sct { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+.q-body { flex: 1; overflow-y: auto; padding: 22px 24px; scrollbar-width: thin; }
+.q-step { display: none; }
+.q-step.on { display: block; }
+
+.q-field { margin-bottom: 20px; }
+.q-lbl { font-size: 13px; font-weight: 600; display: block; margin-bottom: 7px; }
+.req { color: var(--danger); margin-left: 2px; }
+.opt { font-size: 12px; color: var(--muted); font-weight: 400; }
+.q-hint { font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+
+/* Radio */
+.rg { display: flex; flex-wrap: wrap; gap: 7px; }
+.rg.col { flex-direction: column; gap: 6px; }
+.ro { display: flex; align-items: flex-start; gap: 9px; padding: 9px 13px; border: 1px solid var(--border-md); border-radius: 6px; cursor: pointer; font-size: 13.5px; transition: all .12s; user-select: none; }
+.ro:hover { border-color: #aaa; background: #fafafa; }
+.ro.sel { border-color: #111; background: #f5f5f5; }
+.rd { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ccc; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: border-color .12s; }
+.ro.sel .rd { border-color: #111; }
+.ro.sel .rd::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #111; display: block; }
+
+/* Checkbox */
+.cg { display: flex; flex-wrap: wrap; gap: 7px; }
+.co { display: flex; align-items: center; gap: 9px; padding: 9px 13px; border: 1px solid var(--border-md); border-radius: 6px; cursor: pointer; font-size: 13.5px; transition: all .12s; user-select: none; }
+.co:hover { border-color: #aaa; }
+.co.sel { border-color: #111; background: #f5f5f5; }
+.cb { width: 14px; height: 14px; border: 2px solid #ccc; border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .12s; }
+.co.sel .cb { border-color: #111; background: #111; }
+.co.sel .cb::after { content: '✓'; font-size: 9px; color: #fff; font-weight: 700; }
+
+/* Inputs */
+.q-input, .q-textarea { width: 100%; padding: 10px 13px; border: 1px solid var(--border-md); border-radius: 6px; font-size: 14px; font-family: inherit; background: var(--white); color: var(--text); outline: none; transition: border-color .12s; }
+.q-input:focus, .q-textarea:focus { border-color: #999; }
+.q-input::placeholder, .q-textarea::placeholder { color: var(--light); }
+.q-textarea { resize: vertical; min-height: 80px; }
+.q-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.amt { display: flex; }
+.amt-pre { padding: 10px 13px; border: 1px solid var(--border-md); border-right: none; border-radius: 6px 0 0 6px; background: #fafafa; color: var(--muted); font-size: 14px; }
+.amt .q-input { border-radius: 0 6px 6px 0; }
+
+/* Progress bar */
+.q-prog-wrap { display: flex; align-items: center; gap: 10px; }
+.q-prog-text { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.q-prog-track { width: 100px; height: 4px; background: #e5e7eb; border-radius: 99px; flex-shrink: 0; }
+.q-prog-fill { height: 100%; background: var(--success); border-radius: 99px; transition: width .25s; }
+
+/* Footer */
+.q-ftr { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.qbtn { padding: 9px 18px; border-radius: 6px; font-size: 13.5px; cursor: pointer; transition: all .12s; font-weight: 500; }
+.qbtn.ghost { background: transparent; border: 1px solid var(--border-md); color: var(--text); }
+.qbtn.ghost:hover { background: var(--bg); }
+.qbtn.dark { background: var(--accent); color: #fff; border: none; }
+.qbtn.dark:hover { background: #333; }
+.qbtn.green { background: var(--success); color: #fff; border: none; }
+.qbtn.green:hover { background: #15803d; }
+.qbtn:disabled { opacity: .5; cursor: not-allowed; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Chat app -->
+<div id="app">
+  <header id="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-icon">P</div>
+      <div>
+        <div class="hdr-name">Procurement Assistant</div>
+        <div class="hdr-sub">AI-powered intake</div>
+      </div>
+    </div>
+    <button id="new-btn" onclick="newSession()">+ New request</button>
+  </header>
+
+  <div id="msgs">
+    <div class="empty" id="empty">
+      <div class="empty-icon">🛒</div>
+      <h3>Start a procurement request</h3>
+      <p>Tell me what you need and I'll guide you through the process.</p>
+      <div class="chips">
+        <div class="chip" onclick="useChip(this)">I need a new SaaS tool</div>
+        <div class="chip" onclick="useChip(this)">Hardware purchase request</div>
+        <div class="chip" onclick="useChip(this)">New vendor onboarding</div>
+        <div class="chip" onclick="useChip(this)">Renew a supplier contract</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <textarea id="user-input" rows="1" placeholder="Describe what you need..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+    <button id="send-btn" onclick="sendMsg()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Questionnaire overlay -->
+<div id="questionnaire" class="overlay hidden" onclick="handleQBg(event)">
+  <div class="q-modal">
+    <div class="q-hdr">
+      <div>
+        <div class="q-title">Request for <span id="q-name">New Supplier</span></div>
+        <div class="q-sub">Complete all required fields — <span id="q-depth-lbl" style="font-weight:600;color:var(--text)">Standard Review</span></div>
+      </div>
+      <button class="q-close" onclick="hideQ()">✕</button>
+    </div>
+    <div class="q-prog">
+      <div class="q-dots">
+        <div class="q-dot on" id="d0"></div>
+        <div class="q-dot" id="d1"></div>
+        <div class="q-dot" id="d2"></div>
+      </div>
+      <div class="q-slbl" id="slbl">General</div>
+      <div class="q-sct" id="sct">Step 1 of 3</div>
+    </div>
+
+    <div class="q-body">
+
+      <!-- Step 1: General -->
+      <div class="q-step on" id="qs1">
+        <div class="q-field">
+          <label class="q-lbl">What are you looking to purchase?<span class="req">*</span></label>
+          <div class="rg" id="rg-cat">
+            <div class="ro" onclick="pick(this,'cat','Software')"><div class="rd"></div>Software</div>
+            <div class="ro" onclick="pick(this,'cat','Hardware')"><div class="rd"></div>Hardware</div>
+            <div class="ro" onclick="pick(this,'cat','Services')"><div class="rd"></div>Services</div>
+            <div class="ro" onclick="pick(this,'cat','Marketing')"><div class="rd"></div>Marketing</div>
+            <div class="ro" onclick="pick(this,'cat','Legal')"><div class="rd"></div>Legal</div>
+            <div class="ro" onclick="pick(this,'cat','Other')"><div class="rd"></div>Other</div>
+          </div>
+        </div>
+        <div class="q-field">
+          <label class="q-lbl">What is the supplier called?<span class="req">*</span></label>
+          <input class="q-input" id="f-sup" type="text" placeholder="e.g. Linear, Mailchimp, AWS" oninput="document.getElementById('q-name').textContent=this.value||'New Supplier';updateProgress()">
+        </div>
+        <div class="q-field">
+          <label class="q-lbl">What service or product will the supplier provide?<span class="req">*</span></label>
+          <div class="q-hint">E.g. A SaaS platform for project management, cloud infrastructure, email marketing automation</div>
+          <textarea class="q-textarea" id="f-desc" placeholder="Describe what this supplier provides..." oninput="updateProgress()"></textarea>
+        </div>
+        <div class="q-row">
+          <div class="q-field">
+            <label class="q-lbl">Supplier website <span class="opt">(optional)</span></label>
+            <input class="q-input" id="f-web" type="url" placeholder="https://supplier.com">
+          </div>
+          <div class="q-field">
+            <label class="q-lbl">Where will this be used?<span class="req">*</span></label>
+            <div class="rg col" id="rg-loc">
+              <div class="ro" onclick="pick(this,'loc','UK')"><div class="rd"></div>UK only</div>
+              <div class="ro" onclick="pick(this,'loc','EU')"><div class="rd"></div>EU</div>
+              <div class="ro" onclick="pick(this,'loc','US')"><div class="rd"></div>US</div>
+              <div class="ro" onclick="pick(this,'loc','Global')"><div class="rd"></div>Global</div>
+            </div>
+          </div>
+        </div>
+        <div class="q-field">
+          <label class="q-lbl">Is this a new supplier your company hasn't worked with before?<span class="req">*</span></label>
+          <div class="rg" id="rg-new">
+            <div class="ro" onclick="pick(this,'isnew','true')"><div class="rd"></div>Yes, new supplier</div>
+            <div class="ro" onclick="pick(this,'isnew','false')"><div class="rd"></div>No, existing relationship</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Commercial -->
+      <div class="q-step" id="qs2">
+        <div class="q-field">
+          <label class="q-lbl">Total spend amount (GBP)<span class="req">*</span></label>
+          <div class="amt">
+            <div class="amt-pre">£</div>
+            <input class="q-input" id="f-spend" type="number" min="0.01" step="0.01" placeholder="0.00" oninput="updateProgress()">
+          </div>
+        </div>
+        <div class="q-field">
+          <label class="q-lbl">Spend type<span class="req">*</span></label>
+          <div class="rg" id="rg-st">
+            <div class="ro" onclick="pick(this,'st','one-time')"><div class="rd"></div>One-time</div>
+            <div class="ro" onclick="pick(this,'st','recurring')"><div class="rd"></div>Recurring</div>
+            <div class="ro" onclick="pick(this,'st','subscription')"><div class="rd"></div>Subscription</div>
+          </div>
+        </div>
+        <div class="q-field" data-depth="standard">
+          <label class="q-lbl">Expected contract duration<span class="req">*</span></label>
+          <div class="rg" id="rg-dur">
+            <div class="ro" onclick="pick(this,'dur','Under 6 months')"><div class="rd"></div>Under 6 months</div>
+            <div class="ro" onclick="pick(this,'dur','6–12 months')"><div class="rd"></div>6–12 months</div>
+            <div class="ro" onclick="pick(this,'dur','1–2 years')"><div class="rd"></div>1–2 years</div>
+            <div class="ro" onclick="pick(this,'dur','Ongoing')"><div class="rd"></div>Ongoing</div>
+          </div>
+        </div>
+        <div class="q-row">
+          <div class="q-field">
+            <label class="q-lbl">Department<span class="req">*</span></label>
+            <input class="q-input" id="f-dept" type="text" placeholder="e.g. Engineering, Finance" oninput="updateProgress()">
+          </div>
+          <div class="q-field">
+            <label class="q-lbl">Your full name<span class="req">*</span></label>
+            <input class="q-input" id="f-rname" type="text" placeholder="First Last" oninput="updateProgress()">
+          </div>
+        </div>
+        <div class="q-row">
+          <div class="q-field">
+            <label class="q-lbl">Cost center <span class="opt">(optional)</span></label>
+            <input class="q-input" id="f-cc" type="text" placeholder="e.g. CC-1042">
+          </div>
+          <div class="q-field">
+            <label class="q-lbl">Contract expiry date <span class="opt">(optional)</span></label>
+            <input class="q-input" id="f-exp" type="date">
+          </div>
+        </div>
+        <div class="q-field" data-depth="standard">
+          <label class="q-lbl">Is this spend within your approved budget?<span class="req">*</span></label>
+          <div class="rg" id="rg-bud">
+            <div class="ro" onclick="pick(this,'bud','yes')"><div class="rd"></div>Yes, budgeted</div>
+            <div class="ro" onclick="pick(this,'bud','no')"><div class="rd"></div>No — needs approval</div>
+            <div class="ro" onclick="pick(this,'bud','partial')"><div class="rd"></div>Partially budgeted</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Risk & Compliance -->
+      <div class="q-step" id="qs3">
+        <div class="q-field">
+          <label class="q-lbl">What level of data access will this supplier have?<span class="req">*</span></label>
+          <div class="rg col" id="rg-da">
+            <div class="ro" onclick="pick(this,'da','none')"><div class="rd"></div><div><strong>None</strong> — No access to company data</div></div>
+            <div class="ro" onclick="pick(this,'da','internal')"><div class="rd"></div><div><strong>Internal</strong> — Access to internal business data only</div></div>
+            <div class="ro" onclick="pick(this,'da','confidential')"><div class="rd"></div><div><strong>Confidential</strong> — Access to sensitive or proprietary information</div></div>
+            <div class="ro" onclick="pick(this,'da','personal_data')"><div class="rd"></div><div><strong>Personal data</strong> — Access to personal or customer data <em>(triggers DPO review)</em></div></div>
+          </div>
+        </div>
+        <div class="q-field" data-depth="standard">
+          <label class="q-lbl">Will the supplier process or store personal data?<span class="req">*</span></label>
+          <div class="rg" id="rg-pd">
+            <div class="ro" onclick="pick(this,'pd','yes')"><div class="rd"></div>Yes</div>
+            <div class="ro" onclick="pick(this,'pd','no')"><div class="rd"></div>No</div>
+            <div class="ro" onclick="pick(this,'pd','unsure')"><div class="rd"></div>Unsure</div>
+          </div>
+        </div>
+        <div class="q-field" data-depth="deep">
+          <label class="q-lbl">Required security certifications <span class="opt">(select all that apply)</span></label>
+          <div class="cg" id="cg-certs">
+            <div class="co" onclick="tog(this,'certs','SOC 2')"><div class="cb"></div>SOC 2</div>
+            <div class="co" onclick="tog(this,'certs','ISO 27001')"><div class="cb"></div>ISO 27001</div>
+            <div class="co" onclick="tog(this,'certs','GDPR compliant')"><div class="cb"></div>GDPR compliant</div>
+            <div class="co" onclick="tog(this,'certs','DORA')"><div class="cb"></div>DORA</div>
+            <div class="co" onclick="tog(this,'certs','None required')"><div class="cb"></div>None required</div>
+          </div>
+        </div>
+        <div class="q-field" data-depth="standard">
+          <label class="q-lbl">Has legal or finance been consulted?<span class="req">*</span></label>
+          <div class="rg" id="rg-legal">
+            <div class="ro" onclick="pick(this,'legal','yes')"><div class="rd"></div>Yes</div>
+            <div class="ro" onclick="pick(this,'legal','no')"><div class="rd"></div>No</div>
+            <div class="ro" onclick="pick(this,'legal','not_required')"><div class="rd"></div>Not required</div>
+          </div>
+        </div>
+        <div class="q-field">
+          <label class="q-lbl">Business justification<span class="req">*</span></label>
+          <div class="q-hint">Why does the business need this? What problem does it solve?</div>
+          <textarea class="q-textarea" id="f-just" style="min-height:90px" placeholder="Describe why this purchase is needed and what value it delivers..." oninput="updateProgress()"></textarea>
+        </div>
+        <div class="q-field" data-depth="deep">
+          <label class="q-lbl">Known security or compliance concerns <span class="opt">(optional)</span></label>
+          <textarea class="q-textarea" id="f-concern" placeholder="Leave blank if none..."></textarea>
+        </div>
+      </div>
+
+    </div><!-- q-body -->
+
+    <div class="q-ftr">
+      <button class="qbtn ghost hidden" id="q-back" onclick="prevStep()">← Back</button>
+      <div class="q-prog-wrap" style="flex:1;justify-content:center;">
+        <span id="q-prog-text">0 / 0 completed</span>
+        <div class="q-prog-track"><div class="q-prog-fill" id="q-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="qbtn dark" id="q-next" onclick="nextStep()">Next →</button>
+        <button class="qbtn green hidden" id="q-sub" onclick="submitQ()">Submit Request</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8080';
+let sid = crypto.randomUUID();
+let step = 1;
+let fd = {};
+let cs = { supplier: '', cat: '', exchanges: 0, parsed: {} };
+let qDepth = 'standard'; // 'basic' | 'standard' | 'deep_due_diligence'
+
+const STEP_LABELS = ['General', 'Commercial', 'Risk & Compliance'];
+
+const TRUSTED = [
+  { n:'Slack',            team:'Engineering', e:'💬', cats:['communication','software'] },
+  { n:'Google Workspace', team:'IT',          e:'🔵', cats:['productivity','software'] },
+  { n:'Microsoft 365',    team:'IT',          e:'🟦', cats:['productivity','software','hardware'] },
+  { n:'Salesforce',       team:'Sales',       e:'☁️', cats:['sales','crm','services'] },
+  { n:'HubSpot',          team:'Marketing',   e:'🟠', cats:['marketing','crm'] },
+  { n:'Notion',           team:'Operations',  e:'⬛', cats:['productivity','operations'] },
+  { n:'Figma',            team:'Design',      e:'🎨', cats:['design'] },
+  { n:'GitHub',           team:'Engineering', e:'⚫', cats:['engineering','devtools'] },
+  { n:'Zoom',             team:'IT',          e:'🔵', cats:['communication','services'] },
+  { n:'Jira / Atlassian', team:'Engineering', e:'🔷', cats:['engineering','project'] },
+];
+
+// Maps broad AI category + supplier name to a specific subcategory for discovery
+function resolveDiscoveryCat(aiCat, supplierName) {
+  const s = (supplierName||'').toLowerCase();
+  const c = (aiCat||'').toLowerCase();
+  if (s.includes('figma')||s.includes('sketch')||s.includes('canva')||s.includes('adobe')||c==='design') return 'design';
+  if (s.includes('slack')||s.includes('zoom')||s.includes('teams')||s.includes('meet')) return 'communication';
+  if (s.includes('github')||s.includes('gitlab')||s.includes('bitbucket')||s.includes('linear')||s.includes('jira')) return 'engineering';
+  if (s.includes('salesforce')||s.includes('hubspot')||s.includes('pipedrive')||c==='crm') return 'crm';
+  if (c==='marketing') return 'marketing';
+  if (c==='hardware') return 'hardware';
+  if (c==='services') return 'services';
+  if (c==='legal') return 'legal';
+  if (c==='software') return 'software';
+  return 'software';
+}
+
+const ALTS = {
+  design:        [{n:'Canva',v:'Canva Pty Ltd',d:'Online design & visual content',e:'🎨'},{n:'Adobe Creative Cloud',v:'Adobe Inc.',d:'Professional design suite',e:'🅰'},{n:'Sketch',v:'Sketch B.V.',d:'UI/UX design for Mac',e:'💎'},{n:'InVision',v:'InVision App Inc.',d:'Prototyping & design collaboration',e:'🔮'}],
+  engineering:   [{n:'Linear',v:'Linear Inc.',d:'Issue tracking & project management',e:'📋'},{n:'GitLab',v:'GitLab Inc.',d:'DevOps platform & CI/CD',e:'🦊'},{n:'Shortcut',v:'Shortcut Software',d:'Agile project management',e:'🚀'},{n:'Sentry',v:'Sentry Inc.',d:'Application monitoring & error tracking',e:'🔍'}],
+  communication: [{n:'Microsoft Teams',v:'Microsoft Corp.',d:'Team chat & video meetings',e:'💼'},{n:'Google Meet',v:'Google LLC',d:'Video conferencing & meetings',e:'📹'},{n:'Webex',v:'Cisco Systems',d:'Enterprise video conferencing',e:'🔗'},{n:'Discord',v:'Discord Inc.',d:'Voice, video & text for teams',e:'🎮'}],
+  crm:           [{n:'Pipedrive',v:'Pipedrive Inc.',d:'Sales CRM & pipeline management',e:'🔧'},{n:'Zoho CRM',v:'Zoho Corp.',d:'Customer relationship management',e:'🟡'},{n:'Freshsales',v:'Freshworks Inc.',d:'AI-powered CRM',e:'🌊'},{n:'Close',v:'Close Inc.',d:'Inside sales CRM',e:'📞'}],
+  software:      [{n:'Monday.com',v:'Monday.com Ltd.',d:'Work management platform',e:'📊'},{n:'Asana',v:'Asana Inc.',d:'Team task & project tracking',e:'✅'},{n:'ClickUp',v:'ClickUp Inc.',d:'All-in-one workspace',e:'🚀'},{n:'Airtable',v:'Airtable Inc.',d:'Database-spreadsheet hybrid',e:'🗃️'}],
+  marketing:     [{n:'Mailchimp',v:'Intuit Inc.',d:'Email marketing & automation',e:'🐒'},{n:'Brevo',v:'Brevo SAS',d:'Email marketing and CRM',e:'📧'},{n:'MailerLite',v:'MailerLite Ltd.',d:'Email automation',e:'✉️'},{n:'ActiveCampaign',v:'ActiveCampaign',d:'Marketing automation',e:'⚡'}],
+  hardware:      [{n:'Dell Technologies',v:'Dell Inc.',d:'Business hardware & devices',e:'💻'},{n:'Apple Business',v:'Apple Inc.',d:'Mac, iPad & accessories',e:'🍎'},{n:'Lenovo',v:'Lenovo Group',d:'ThinkPad & business devices',e:'🖥️'},{n:'HP Inc.',v:'HP Inc.',d:'Business laptops & peripherals',e:'🖨️'}],
+  services:      [{n:'Deloitte',v:'Deloitte LLP',d:'Professional services & consulting',e:'🏢'},{n:'Accenture',v:'Accenture plc',d:'Technology & management consulting',e:'🔷'},{n:'PwC',v:'PricewaterhouseCoopers',d:'Audit, consulting & advisory',e:'🏛️'},{n:'Cognizant',v:'Cognizant',d:'IT services & solutions',e:'⚙️'}],
+  legal:         [{n:'Ironclad',v:'Ironclad Inc.',d:'Contract lifecycle management',e:'📜'},{n:'DocuSign',v:'DocuSign Inc.',d:'E-signatures & agreements',e:'✍️'},{n:'Clio',v:'Themis Solutions',d:'Legal matter management',e:'⚖️'},{n:'Lexion',v:'Lexion Inc.',d:'AI contract management',e:'📄'}],
+  other:         [{n:'Coupa',v:'Coupa Software',d:'Spend management platform',e:'💰'},{n:'Zip',v:'Zip HQ',d:'Procurement intake & orchestration',e:'🔗'},{n:'Ramp',v:'Ramp Financial',d:'Corporate cards & spend control',e:'💳'},{n:'Tipalti',v:'Tipalti Inc.',d:'Accounts payable automation',e:'🏦'}],
+};
+
+// ── Chat ──
+function addMsg(role, html) {
+  const e = document.getElementById('empty'); if (e) e.remove();
+  const d = document.createElement('div');
+  d.className = `msg ${role}`;
+  d.innerHTML = `<div class="msg-av">${role==='agent'?'P':'Y'}</div><div class="msg-bub">${html.replace(/\n/g,'<br>')}</div>`;
+  const m = document.getElementById('msgs');
+  m.appendChild(d); m.scrollTop = m.scrollHeight;
+}
+
+function showTyping() {
+  const m = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.id = 'typ'; d.className = 'msg agent';
+  d.innerHTML = '<div class="msg-av">P</div><div class="msg-bub"><div class="dots"><span></span><span></span><span></span></div></div>';
+  m.appendChild(d); m.scrollTop = m.scrollHeight;
+}
+function hideTyping() { const e=document.getElementById('typ'); if(e)e.remove(); }
+
+async function sendMsg() {
+  const inp = document.getElementById('user-input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  inp.value = ''; inp.style.height = 'auto';
+  addMsg('user', txt);
+  extractChat(txt);
+  showTyping();
+  try {
+    const r = await fetch(`${API}/chat`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: sid, message: txt }),
+    });
+    const data = await r.json();
+    hideTyping();
+    if (data.reply) addMsg('agent', data.reply);
+    cs.exchanges++;
+    if (data.is_complete) {
+      if (data.reply) cs.parsed = parseFromSummary(data.reply);
+      cs.supplier = cs.parsed.supplier || cs.supplier;
+      cs.cat = (cs.parsed.cat || cs.cat || 'software').toLowerCase();
+      addDiscoveryCard();
+    }
+  } catch(e) {
+    hideTyping();
+    addMsg('agent', 'Could not reach the server. Make sure the backend is running on port 8080.');
+  }
+}
+
+function extractChat(t) {
+  const l = t.toLowerCase();
+  if (!cs.supplier) {
+    // Replacement: "replace X with Y" or "switch from X to Y" → Y is new supplier
+    const rep = t.match(/(?:replace\s+\S+\s+with|switch(?:ing)?\s+(?:from\s+)?\S+\s+to|instead\s+of\s+\S+\s+(?:use|get|buy))\s+([A-Za-z0-9][a-zA-Z0-9\s.]+?)(?:\s+for|\s+to|\s+at|\.|,|$)/i);
+    if (rep) { cs.supplier = rep[1].trim(); }
+    else {
+      const m = t.match(/(?:for|need|buy|using|get|purchase|want)\s+([A-Z][a-zA-Z0-9\s.]+?)(?:\s+for|\s+to|\s+at|\.|,|$)/);
+      if (m) cs.supplier = m[1].trim();
+    }
+  }
+  if (l.includes('figma')||l.includes('sketch')||l.includes('canva')||l.includes('design')||l.includes('brand asset')) cs.cat='design';
+  else if (l.includes('github')||l.includes('gitlab')||l.includes('linear')||l.includes('jira')||l.includes('devops')||l.includes('ci/cd')) cs.cat='engineering';
+  else if (l.includes('slack')||l.includes('zoom')||l.includes('teams')||l.includes('communication')) cs.cat='communication';
+  else if (l.includes('salesforce')||l.includes('hubspot')||l.includes('pipedrive')||l.includes('crm')) cs.cat='crm';
+  else if (l.includes('software')||l.includes('saas')||l.includes('tool')||l.includes('platform')) cs.cat='software';
+  else if (l.includes('hardware')||l.includes('laptop')||l.includes('device')) cs.cat='hardware';
+  else if (l.includes('marketing')||l.includes('email campaign')) cs.cat='marketing';
+  else if (l.includes('legal')||l.includes('contract')||l.includes('lawyer')) cs.cat='legal';
+  else if (l.includes('consult')||l.includes('services')||l.includes('agency')) cs.cat='services';
+}
+
+function handleKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function useChip(el) { document.getElementById('user-input').value=el.textContent; sendMsg(); }
+
+function newSession() {
+  sid = crypto.randomUUID();
+  cs = { supplier:'', cat:'', exchanges:0, parsed:{} };
+  document.getElementById('msgs').innerHTML = `<div class="empty" id="empty"><div class="empty-icon">🛒</div><h3>Start a procurement request</h3><p>Tell me what you need and I'll guide you through the process.</p><div class="chips"><div class="chip" onclick="useChip(this)">I need a new SaaS tool</div><div class="chip" onclick="useChip(this)">Hardware purchase request</div><div class="chip" onclick="useChip(this)">New vendor onboarding</div><div class="chip" onclick="useChip(this)">Renew a supplier contract</div></div></div>`;
+}
+
+// ── Parse AI summary into structured fields ──
+function parseFromSummary(text) {
+  const get = (label) => {
+    const m = text.match(new RegExp(label + '[:\\s]+([^\\n*•]+)', 'i'));
+    return m ? m[1].trim().replace(/\*+$/, '').trim() : '';
+  };
+  const supplier = get('supplier\\s*name') || cs.supplier;
+  const service_description = get('service\\s*description');
+  // Strip parenthetical clarifications like "(associated with the IT cost center)"
+  const dept  = get('department').replace(/\s*\(.*?\)/g, '').trim();
+  const rname = get('requester\\s*name').replace(/\s*\(.*?\)/g, '').trim();
+  const justification = get('business\\s*justification');
+  const cc      = get('cost\\s*cent(?:er|re)').replace(/\s*\(.*?\)/g, '').trim();
+  const website = get('supplier\\s*website');
+  const geoRaw  = get('geography').trim();
+  const geoMap  = { uk:'UK', eu:'EU', us:'US', global:'Global' };
+  const geography = geoMap[geoRaw.toLowerCase()] || geoRaw || '';
+
+  const spendRaw   = get('spend\\s*amount');
+  const spendMatch = spendRaw.match(/[\d,]+(\.\d+)?/);
+  const spend      = spendMatch ? parseFloat(spendMatch[0].replace(/,/g,'')) : null;
+
+  const stRaw = get('spend\\s*type').toLowerCase();
+  const st    = stRaw.includes('sub') ? 'subscription' : stRaw.includes('rec') ? 'recurring' : stRaw.includes('one') ? 'one-time' : '';
+
+  const catRaw = get('category');
+  const catMap = { software:'Software', hardware:'Hardware', services:'Services', marketing:'Marketing', legal:'Legal', other:'Other' };
+  const cat    = catMap[catRaw.toLowerCase()] || catRaw;
+
+  const daRaw = get('data\\s*access').toLowerCase();
+  const da    = daRaw.includes('personal') ? 'personal_data' : daRaw.includes('conf') ? 'confidential' : daRaw.includes('int') ? 'internal' : daRaw.includes('none') ? 'none' : '';
+
+  // Infer is_new_supplier: approved list check
+  const APPROVED_NAMES = ['slack','google workspace','microsoft 365','salesforce','hubspot','notion','figma','github','zoom','jira','atlassian'];
+  const isnew = APPROVED_NAMES.some(n => (supplier||'').toLowerCase().includes(n)) ? 'false' : 'true';
+
+  // Infer whether supplier processes personal data from data access level
+  const pd = da === 'personal_data' ? 'yes' : da === 'none' ? 'no' : 'unsure';
+
+  return { supplier, service_description, dept, rname, justification, cc, website, geography, spend, st, cat, da, isnew, pd };
+}
+
+// ── Inline discovery card ──
+function addDiscoveryCard() {
+  const discCat = resolveDiscoveryCat(cs.cat, cs.supplier);
+  const reqName = (cs.supplier || '').toLowerCase();
+  // Show trusted suppliers relevant to this specific category — keep requested supplier if it's approved (that's the deduplication signal)
+  const trusted = TRUSTED.filter(s => s.cats.includes(discCat)).slice(0, 3);
+  const alts    = (ALTS[discCat] || ALTS[cs.cat] || ALTS.other).filter(a => a.n.toLowerCase() !== reqName).slice(0, 3);
+
+  // Unique ID so the continue button can be updated when user picks a different supplier
+  const cardId = 'disc-' + Date.now();
+
+  const trustedHTML = trusted.length ? `
+    <div class="disc-sec-lbl">Trusted internal suppliers</div>
+    <div class="disc-trusted">
+      ${trusted.map(s => {
+        const isRequested = s.n.toLowerCase() === reqName;
+        const badge = isRequested
+          ? `<span class="disc-tr-badge" style="background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe">Already approved — request access</span>`
+          : `<span class="disc-tr-badge">✓ Approved</span>`;
+        return `<div class="disc-tr" onclick="pickDiscSupplier('${cardId}','${s.n}','existing')" style="cursor:pointer">
+          <div class="disc-tr-logo">${s.e}</div>
+          <div class="disc-tr-info"><div class="disc-tr-name">${s.n}</div><div class="disc-tr-team">${s.team} team</div></div>
+          ${badge}
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  const altsHTML = alts.length ? `
+    <div class="disc-sec-lbl">Recommended alternatives</div>
+    <div class="disc-alts">
+      ${alts.map(a=>`<div class="disc-alt" onclick="pickDiscSupplier('${cardId}','${a.n}','new')">
+        <div class="disc-alt-logo">${a.e}</div>
+        <div class="disc-alt-name">${a.n}</div>
+        <div class="disc-alt-vendor">${a.v}</div>
+        <div class="disc-alt-desc">${a.d}</div>
+      </div>`).join('')}
+    </div>` : '';
+
+  const m = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.className = 'msg agent';
+  d.innerHTML = `<div class="msg-av">P</div><div class="disc-card" id="${cardId}">
+    <div class="disc-card-ttl">Got it. Here are your best options.</div>
+    <div class="disc-card-sub">Based on what your company already uses — plus a few top-rated alternatives. Continue with your chosen supplier, or select one below.</div>
+    ${trustedHTML}
+    ${altsHTML}
+    <div class="disc-actions">
+      <button class="disc-cont-btn" id="${cardId}-btn" onclick="showQ()">Continue with ${cs.supplier||'new supplier'} →</button>
+      <span class="disc-alt-note" id="${cardId}-note">Or select an option above to switch</span>
+    </div>
+  </div>`;
+  m.appendChild(d);
+  m.scrollTop = m.scrollHeight;
+}
+
+function pickDiscSupplier(cardId, name, type) {
+  // Highlight selected card
+  const card = document.getElementById(cardId);
+  card.querySelectorAll('.disc-tr, .disc-alt').forEach(el => el.style.outline = '');
+  event.currentTarget.style.outline = '2px solid #111';
+
+  cs.supplier = name;
+
+  // Keep requester-specific fields, clear supplier-specific ones
+  // Requester fields that travel with the person, not the product:
+  //   dept, rname, justification, cc, geography, da, pd, isnew (overridden below)
+  // Supplier fields that are specific to the chosen product — clear these:
+  //   supplier, service_description, website, spend, st (spend type)
+  cs.parsed = {
+    ...cs.parsed,
+    supplier:            name,
+    service_description: '',   // different product, different description
+    website:             '',   // different product, different URL
+    spend:               null, // different product, different price
+    st:                  '',   // spend type may differ
+    isnew:               type === 'existing' ? 'false' : 'true',
+  };
+
+  if (type === 'existing') {
+    document.getElementById(cardId + '-btn').textContent = `Request access to ${name} →`;
+    document.getElementById(cardId + '-note').textContent = 'Existing approved supplier — access request flow';
+  } else {
+    document.getElementById(cardId + '-btn').textContent = `Continue with ${name} →`;
+    document.getElementById(cardId + '-note').textContent = 'New supplier selected';
+  }
+}
+
+// ── Questionnaire ──
+function computeDepth(p) {
+  const spend = p.spend || 0;
+  const da = p.da || 'none';
+  if (spend > 50000 || da === 'personal_data' || da === 'confidential') return 'deep_due_diligence';
+  if (spend > 10000 || p.isnew === 'true') return 'standard';
+  return 'basic';
+}
+
+function applyDepth(depth) {
+  qDepth = depth;
+  document.querySelectorAll('[data-depth]').forEach(el => {
+    const needed = el.dataset.depth;
+    const show = needed === 'standard' ? depth !== 'basic' : depth === 'deep_due_diligence';
+    el.style.display = show ? '' : 'none';
+  });
+  const labels = { basic:'Basic Review', standard:'Standard Review', deep_due_diligence:'Deep Due Diligence' };
+  document.getElementById('q-depth-lbl').textContent = labels[depth] || depth;
+}
+
+function showQ() {
+  fd = {}; step = 1;
+  document.querySelectorAll('.ro').forEach(r=>r.classList.remove('sel'));
+  document.querySelectorAll('.co').forEach(c=>c.classList.remove('sel'));
+
+  const p = cs.parsed || {};
+  const supplier = p.supplier || cs.supplier || '';
+
+  // Apply adaptive depth before pre-filling so hidden fields aren't validated
+  applyDepth(computeDepth(p));
+
+  // ── Step 1 ──
+  document.getElementById('f-sup').value = supplier;
+  document.getElementById('q-name').textContent = supplier || 'New Supplier';
+  // service_description = what the supplier provides (distinct from why we need it)
+  document.getElementById('f-desc').value = p.service_description || '';
+  if (p.website) document.getElementById('f-web').value = p.website;
+
+  const cat = p.cat || (cs.cat ? cs.cat.charAt(0).toUpperCase()+cs.cat.slice(1) : '');
+  if (cat) {
+    const ro = [...document.querySelectorAll('#rg-cat .ro')].find(r=>r.textContent.trim()===cat);
+    if (ro) pick(ro,'cat',cat);
+  }
+  if (p.geography) {
+    const ro = [...document.querySelectorAll('#rg-loc .ro')].find(r=>(r.getAttribute('onclick')||'').includes(`'${p.geography}'`));
+    if (ro) pick(ro,'loc',p.geography);
+  }
+  if (p.isnew) {
+    const ro = [...document.querySelectorAll('#rg-new .ro')].find(r=>(r.getAttribute('onclick')||'').includes(`'${p.isnew}'`));
+    if (ro) pick(ro,'isnew',p.isnew);
+  }
+
+  // ── Step 2 ──
+  if (p.spend) document.getElementById('f-spend').value = p.spend;
+  if (p.dept)  document.getElementById('f-dept').value  = p.dept;
+  if (p.rname) document.getElementById('f-rname').value = p.rname;
+  if (p.cc)    document.getElementById('f-cc').value    = p.cc;
+  if (p.st) {
+    const stLabel = { 'one-time':'One-time', 'recurring':'Recurring', 'subscription':'Subscription' }[p.st];
+    const ro = [...document.querySelectorAll('#rg-st .ro')].find(r=>r.textContent.trim()===stLabel);
+    if (ro) pick(ro,'st',p.st);
+  }
+
+  // ── Step 3 ──
+  if (p.da) {
+    const ro = [...document.querySelectorAll('#rg-da .ro')].find(r=>(r.getAttribute('onclick')||'').includes(`'${p.da}'`));
+    if (ro) pick(ro,'da',p.da);
+  }
+  if (p.pd) {
+    const ro = [...document.querySelectorAll('#rg-pd .ro')].find(r=>(r.getAttribute('onclick')||'').includes(`'${p.pd}'`));
+    if (ro) pick(ro,'pd',p.pd);
+  }
+  // business_justification = why the business needs it (separate from service description)
+  if (p.justification) document.getElementById('f-just').value = p.justification;
+
+  renderStep();
+  document.getElementById('questionnaire').classList.remove('hidden');
+}
+function hideQ() { document.getElementById('questionnaire').classList.add('hidden'); }
+function handleQBg(e) { if(e.target===document.getElementById('questionnaire')) hideQ(); }
+
+function renderStep() {
+  document.querySelectorAll('.q-step').forEach((s,i)=>s.classList.toggle('on',i+1===step));
+  ['d0','d1','d2'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',i+1<=step));
+  document.getElementById('slbl').textContent = STEP_LABELS[step-1];
+  document.getElementById('sct').textContent = `Step ${step} of 3`;
+  document.getElementById('q-back').classList.toggle('hidden', step===1);
+  document.getElementById('q-next').classList.toggle('hidden', step===3);
+  document.getElementById('q-sub').classList.toggle('hidden', step!==3);
+  document.querySelector('.q-body').scrollTop = 0;
+  updateProgress();
+}
+
+function pick(el, key, val) {
+  el.closest('.rg').querySelectorAll('.ro').forEach(r=>r.classList.remove('sel'));
+  el.classList.add('sel');
+  fd[key] = val;
+  if (key==='cat') cs.cat = val.toLowerCase();
+  updateProgress();
+}
+
+function tog(el, key, val) {
+  el.classList.toggle('sel');
+  if (!fd[key]) fd[key]=[];
+  const i=fd[key].indexOf(val);
+  i>=0 ? fd[key].splice(i,1) : fd[key].push(val);
+  updateProgress();
+}
+
+function computeProgress() {
+  let filled = 0, total = 0;
+  function chk(condition) { total++; if (condition) filled++; }
+  if (step === 1) {
+    chk(!!fd.cat);
+    chk(!!document.getElementById('f-sup').value.trim());
+    chk(!!document.getElementById('f-desc').value.trim());
+    chk(!!fd.loc);
+    chk(!!fd.isnew);
+  } else if (step === 2) {
+    chk(parseFloat(document.getElementById('f-spend').value) > 0);
+    chk(!!fd.st);
+    if (depthVisible('standard')) chk(!!fd.dur);
+    chk(!!document.getElementById('f-dept').value.trim());
+    chk(!!document.getElementById('f-rname').value.trim());
+    if (depthVisible('standard')) chk(!!fd.bud);
+  } else if (step === 3) {
+    chk(!!fd.da);
+    if (depthVisible('standard')) chk(!!fd.pd);
+    if (depthVisible('standard')) chk(!!fd.legal);
+    chk(!!document.getElementById('f-just').value.trim());
+  }
+  return { filled, total };
+}
+
+function updateProgress() {
+  const { filled, total } = computeProgress();
+  const pct = total > 0 ? Math.round((filled / total) * 100) : 0;
+  document.getElementById('q-prog-text').textContent = `${filled} / ${total} completed`;
+  document.getElementById('q-prog-fill').style.width = pct + '%';
+}
+
+function depthVisible(attr) {
+  // Returns true if fields with data-depth=attr are currently shown
+  const el = document.querySelector(`[data-depth="${attr}"]`);
+  return el && el.style.display !== 'none';
+}
+
+function validate(s) {
+  const e=[];
+  if (s===1) {
+    if (!fd.cat) e.push('Please select a purchase category');
+    if (!document.getElementById('f-sup').value.trim()) e.push('Supplier name is required');
+    if (!document.getElementById('f-desc').value.trim()) e.push('Service description is required');
+    if (!fd.loc) e.push('Please select where this will be used');
+    if (!fd.isnew) e.push('Please indicate if this is a new supplier');
+  }
+  if (s===2) {
+    if (!(parseFloat(document.getElementById('f-spend').value) > 0)) e.push('Please enter a valid spend amount');
+    if (!fd.st) e.push('Please select a spend type');
+    if (depthVisible('standard') && !fd.dur) e.push('Please select a contract duration');
+    if (!document.getElementById('f-dept').value.trim()) e.push('Department is required');
+    if (!document.getElementById('f-rname').value.trim()) e.push('Your name is required');
+    if (depthVisible('standard') && !fd.bud) e.push('Please indicate if this spend is budgeted');
+  }
+  if (s===3) {
+    if (!fd.da) e.push('Please select a data access level');
+    if (depthVisible('standard') && !fd.pd) e.push('Please indicate if supplier will process personal data');
+    if (depthVisible('standard') && !fd.legal) e.push('Please indicate if legal/finance has been consulted');
+    if (!document.getElementById('f-just').value.trim()) e.push('Business justification is required');
+  }
+  return e;
+}
+
+function nextStep() {
+  const errs = validate(step);
+  if (errs.length) { alert(errs.join('\n')); return; }
+  if (step < 3) { step++; renderStep(); }
+}
+function prevStep() { if(step>1){step--;renderStep();} }
+
+async function submitQ() {
+  const errs = validate(3);
+  if (errs.length) { alert(errs.join('\n')); return; }
+  const btn = document.getElementById('q-sub');
+  btn.textContent='Submitting...'; btn.disabled=true;
+  const payload = {
+    supplier_name: document.getElementById('f-sup').value.trim(),
+    supplier_website: document.getElementById('f-web').value.trim()||null,
+    service_description: document.getElementById('f-desc').value.trim()||null,
+    spend_amount: parseFloat(document.getElementById('f-spend').value),
+    spend_type: fd.st,
+    category: fd.cat,
+    geography: fd.loc || 'UK',
+    data_access: fd.da,
+    business_justification: document.getElementById('f-just').value.trim(),
+    requester_name: document.getElementById('f-rname').value.trim(),
+    department: document.getElementById('f-dept').value.trim(),
+    cost_center: document.getElementById('f-cc').value.trim()||null,
+    contract_expiry_date: document.getElementById('f-exp').value||null,
+    contract_duration: fd.dur||null,
+    security_certifications: (fd.certs||[]).filter(c=>c!=='None required'),
+    is_new_supplier: fd.isnew==='true'?true:fd.isnew==='false'?false:null,
+  };
+  try {
+    const r = await fetch(`${API}/requests/create`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(e.detail||'Submission failed'); }
+    const data = await r.json();
+    hideQ();
+    showCC(data);
+      fd={}; cs={supplier:'',cat:'',exchanges:0,parsed:{}};
+  } catch(e) {
+    alert('Error: '+e.message);
+    btn.textContent='Submit Request'; btn.disabled=false;
+  }
+}
+
+function riskBadge(label) {
+  const cls = label==='low'?'r-low':label==='medium'?'r-med':'r-hi';
+  return `<span class="rbadge ${cls}">${(label||'unknown').toUpperCase()}</span>`;
+}
+
+function showCC(data) {
+  const empty=document.getElementById('empty'); if(empty)empty.remove();
+  const flags=Array.isArray(data.policy_flags)?data.policy_flags:[];
+  const hasResidual = data.residual_risk_score != null && data.residual_risk_score !== data.risk_score;
+  const riskCell = hasResidual
+    ? `${riskBadge(data.risk_label)} <span style="color:var(--muted);font-size:12px">→ after certs</span> ${riskBadge(data.residual_risk_label||data.risk_label)} · ${data.residual_risk_score?.toFixed(2)??'—'}`
+    : `${riskBadge(data.risk_label)} · ${data.risk_score?.toFixed(2)??'—'}`;
+  const m=document.getElementById('msgs');
+  const d=document.createElement('div');
+  d.className='msg agent';
+  d.innerHTML=`<div class="msg-av">P</div><div class="cc">
+    <div class="cc-top"><div class="cc-chk">✓</div><div><div class="cc-ttl">Request submitted — ${data.supplier_name||'New Supplier'}</div><div class="cc-id">ID: ${data.request_id}</div></div></div>
+    <div class="cc-grid">
+      <div><div class="cc-lbl">Inherent risk</div><div class="cc-val">${riskCell}</div></div>
+      <div><div class="cc-lbl">Review depth</div><div class="cc-val">${(data.questionnaire_depth||'—').replace(/_/g,' ')}</div></div>
+      <div><div class="cc-lbl">Spend</div><div class="cc-val">£${data.spend_amount?.toLocaleString()??'—'} · ${data.spend_type||'—'}</div></div>
+      <div><div class="cc-lbl">Category</div><div class="cc-val">${data.category||'—'}</div></div>
+      <div><div class="cc-lbl">Requester</div><div class="cc-val">${data.requester_name||'—'}</div></div>
+      <div><div class="cc-lbl">Department</div><div class="cc-val">${data.department||'—'}</div></div>
+    </div>
+    ${flags.length?`<div class="cc-flags">${flags.map(f=>`<span class="cc-flag">⚠ ${f}</span>`).join('')}</div>`:''}
+  </div>`;
+  m.appendChild(d); m.scrollTop=m.scrollHeight;
+}
+
+</script>
+</body>
+</html>
