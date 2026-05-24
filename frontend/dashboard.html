@@ -687,7 +687,7 @@
   <div class="nav-item" id="nav-requests" onclick="switchView('requests')">
     <span>📋</span> All Requests
   </div>
-  <div class="nav-item" id="nav-intake" onclick="window.location.href='/chat.html'">
+  <div class="nav-item" id="nav-intake" onclick="window.location.href='/chat'">
     <span>💬</span> New Request
   </div>
   <div class="nav-section">Requester</div>
@@ -779,9 +779,9 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ── Navigation ────────────────────────────────────────────────────────────────
-function switchView(v) {
+function switchView(v, pushHistory = true) {
   S.view = v;
-  history.replaceState(null, "", "#" + v);
+  if (pushHistory) history.pushState({ view: v }, "", "/dashboard#" + v);
   ["tasks","requests","requester","workflow","analytics"].forEach(n => {
     document.getElementById(`nav-${n}`)?.classList.toggle("active", n === v);
   });
@@ -791,6 +791,17 @@ function switchView(v) {
   else if (v === "workflow")  { S.activePersona = null; loadWorkflowConfig(); }
   else if (v === "analytics") { S.activePersona = null; loadAnalytics(); }
 }
+
+window.addEventListener("popstate", (e) => {
+  const state = e.state;
+  const hash = window.location.hash.replace("#", "");
+  const validViews = ["tasks", "requests", "requester", "workflow", "analytics"];
+  const req = new URLSearchParams(window.location.search).get("req");
+  if (req) { openRequesterView(req); }
+  else if (state?.view && validViews.includes(state.view)) { switchView(state.view, false); }
+  else if (validViews.includes(hash)) { switchView(hash, false); }
+  else { switchView("tasks", false); }
+});
 
 // ── API calls ─────────────────────────────────────────────────────────────────
 async function loadQueue() {
@@ -1716,7 +1727,7 @@ async function openRequesterView(requestId) {
     );
     document.getElementById("nav-requester")?.classList.add("active");
     // Update URL so the view is bookmarkable / shareable
-    history.replaceState(null, "", `?req=${requestId}`);
+    history.pushState({ view: "requester", req: requestId }, "", `/dashboard?req=${requestId}`);
     renderRequesterView(S.req, S.steps);
   } catch (e) {
     showMain(`<div class="content"><div class="error-banner">Could not load request: ${esc(e.message)}</div></div>`);
@@ -1724,7 +1735,7 @@ async function openRequesterView(requestId) {
 }
 
 function backFromRequester() {
-  history.replaceState(null, "", window.location.pathname);
+  history.pushState({ view: S.prevView || "requests" }, "", "/dashboard#" + (S.prevView || "requests"));
   S.view = S.prevView || "requests";
   ["tasks","requests","requester"].forEach(n =>
     document.getElementById(`nav-${n}`)?.classList.toggle("active", n === S.view)

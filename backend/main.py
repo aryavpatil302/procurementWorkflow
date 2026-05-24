@@ -2,7 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.database import init_db
@@ -49,7 +49,17 @@ def health():
 
 @app.get("/")
 def root():
-    return RedirectResponse(url="/dashboard.html")
+    return RedirectResponse(url="/dashboard")
+
+
+@app.get("/dashboard")
+def dashboard():
+    return FileResponse(os.path.join(_FRONTEND_DIR, "dashboard.html"))
+
+
+@app.get("/chat")
+def chat_page():
+    return FileResponse(os.path.join(_FRONTEND_DIR, "chat.html"))
 
 
 # Serve frontend static files — mounted last so API routes take precedence
