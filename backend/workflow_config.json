@@ -1,0 +1,449 @@
+{
+  "roles": [
+    {
+      "id": "manager",
+      "name": "Line Manager",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Sarah Chen",
+          "title": "Line Manager"
+        }
+      ]
+    },
+    {
+      "id": "finance",
+      "name": "Finance",
+      "builtin": true,
+      "people": [
+        {
+          "name": "James Okafor",
+          "title": "Finance Manager"
+        }
+      ]
+    },
+    {
+      "id": "it_security",
+      "name": "IT Security",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Priya Mehta",
+          "title": "IT Security Lead"
+        }
+      ]
+    },
+    {
+      "id": "legal",
+      "name": "Legal",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Tom Whitfield",
+          "title": "Legal Counsel"
+        }
+      ]
+    },
+    {
+      "id": "dpo",
+      "name": "DPO",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Anna Kowalski",
+          "title": "Data Protection Officer"
+        }
+      ]
+    },
+    {
+      "id": "cfo",
+      "name": "CFO",
+      "builtin": true,
+      "people": [
+        {
+          "name": "David Harrington",
+          "title": "CFO"
+        }
+      ]
+    },
+    {
+      "id": "director",
+      "name": "Director",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Emma Wilson",
+          "title": "Director"
+        }
+      ]
+    },
+    {
+      "id": "fpa",
+      "name": "FP&A",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Marcus Lee",
+          "title": "FP&A Lead"
+        }
+      ]
+    },
+    {
+      "id": "ceo",
+      "name": "CEO",
+      "builtin": true,
+      "people": [
+        {
+          "name": "Robert Fox",
+          "title": "CEO"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "default-hardware",
+      "name": "Hardware",
+      "trigger": {
+        "category": [
+          "Hardware"
+        ]
+      },
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "IT Security Review"
+        },
+        {
+          "id": 3,
+          "name": "Finance Review"
+        }
+      ],
+      "approval_rules": [
+        {
+          "role": "manager",
+          "sequence_group": 1,
+          "always": true
+        },
+        {
+          "role": "it_security",
+          "sequence_group": 2,
+          "always": true
+        },
+        {
+          "role": "finance",
+          "sequence_group": 3,
+          "condition": {
+            "spend_amount_gt": 10000
+          }
+        }
+      ]
+    },
+    {
+      "id": "custom-software-new-vendor",
+      "name": "Software \u2014 New Vendor",
+      "trigger": {
+        "category": [
+          "Software"
+        ],
+        "is_new_supplier": true
+      },
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "IT Security & DPO Review"
+        },
+        {
+          "id": 3,
+          "name": "Legal & Finance Review"
+        },
+        {
+          "id": 4,
+          "name": "CFO Sign-off"
+        }
+      ],
+      "approval_rules": [
+        {
+          "always": true,
+          "role": "manager",
+          "sequence_group": 1
+        },
+        {
+          "always": true,
+          "role": "it_security",
+          "sequence_group": 2
+        },
+        {
+          "always": true,
+          "role": "dpo",
+          "sequence_group": 2
+        },
+        {
+          "always": true,
+          "role": "legal",
+          "sequence_group": 3
+        },
+        {
+          "always": true,
+          "role": "finance",
+          "sequence_group": 3
+        },
+        {
+          "condition": {
+            "spend_amount_gt": 20000
+          },
+          "role": "cfo",
+          "sequence_group": 4
+        }
+      ]
+    },
+    {
+      "id": "default-software",
+      "name": "Software",
+      "trigger": {
+        "category": [
+          "Software"
+        ]
+      },
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "IT Security Review"
+        },
+        {
+          "id": 3,
+          "name": "Finance Review"
+        }
+      ],
+      "approval_rules": [
+        {
+          "always": true,
+          "role": "manager",
+          "sequence_group": 1
+        },
+        {
+          "always": true,
+          "role": "it_security",
+          "sequence_group": 2
+        },
+        {
+          "condition": {
+            "spend_amount_gt": 10000
+          },
+          "role": "finance",
+          "sequence_group": 3
+        }
+      ]
+    },
+    {
+      "id": "default-marketing",
+      "name": "Marketing",
+      "trigger": {
+        "category": [
+          "Marketing"
+        ]
+      },
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "Finance Review"
+        },
+        {
+          "id": 3,
+          "name": "Director Sign-off"
+        }
+      ],
+      "approval_rules": [
+        {
+          "role": "manager",
+          "sequence_group": 1,
+          "always": true
+        },
+        {
+          "role": "finance",
+          "sequence_group": 2,
+          "always": true
+        },
+        {
+          "role": "director",
+          "sequence_group": 3,
+          "condition": {
+            "spend_amount_gt": 20000
+          }
+        }
+      ]
+    },
+    {
+      "id": "default",
+      "name": "Default",
+      "trigger": null,
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "Parallel Review"
+        }
+      ],
+      "approval_rules": [
+        {
+          "always": true,
+          "role": "manager",
+          "sequence_group": 1
+        },
+        {
+          "condition": {
+            "category": [
+              "Software",
+              "Services",
+              "Hardware"
+            ]
+          },
+          "role": "it_security",
+          "sequence_group": 2
+        },
+        {
+          "condition": {
+            "spend_amount_gt": 10000
+          },
+          "role": "finance",
+          "sequence_group": 2
+        }
+      ]
+    },
+    {
+      "id": "flow_1779575264664",
+      "name": "Campaign Agency",
+      "trigger": {
+        "category": [
+          "Marketing"
+        ],
+        "spend_amount_gt": 50000
+      },
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "Finance Review"
+        },
+        {
+          "id": 3,
+          "name": "DPO Review"
+        },
+        {
+          "id": 4,
+          "name": "Director Review"
+        }
+      ],
+      "approval_rules": [
+        {
+          "always": true,
+          "role": "manager",
+          "sequence_group": 1
+        },
+        {
+          "role": "finance",
+          "sequence_group": 2,
+          "always": true
+        },
+        {
+          "role": "legal",
+          "sequence_group": 2,
+          "always": true
+        },
+        {
+          "role": "dpo",
+          "sequence_group": 3,
+          "always": true
+        },
+        {
+          "role": "director",
+          "sequence_group": 4,
+          "condition": {
+            "spend_amount_gt": 20000
+          }
+        }
+      ]
+    },
+    {
+      "id": "flow_1779575394271",
+      "name": "Campaign Agency",
+      "trigger": {
+        "category": [
+          "Marketing"
+        ],
+        "spend_amount_gt": 50000
+      },
+      "stages": [
+        {
+          "id": 1,
+          "name": "Initial Gate"
+        },
+        {
+          "id": 2,
+          "name": "Finance Review"
+        },
+        {
+          "id": 3,
+          "name": "DPO Review"
+        },
+        {
+          "id": 4,
+          "name": "Director Review"
+        }
+      ],
+      "approval_rules": [
+        {
+          "always": true,
+          "role": "manager",
+          "sequence_group": 1
+        },
+        {
+          "role": "finance",
+          "sequence_group": 2,
+          "always": true
+        },
+        {
+          "role": "legal",
+          "sequence_group": 2,
+          "always": true
+        },
+        {
+          "role": "dpo",
+          "sequence_group": 3,
+          "always": true
+        },
+        {
+          "role": "director",
+          "sequence_group": 4,
+          "condition": {
+            "spend_amount_gt": 20000
+          }
+        }
+      ]
+    }
+  ],
+  "escalation_minutes": 60,
+  "parallel_group": 2
+}

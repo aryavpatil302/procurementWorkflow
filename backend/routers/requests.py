@@ -7,9 +7,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from sqlalchemy import delete as sa_delete
+
 from backend.database import get_db
-from backend.models import AuditLogORM, ProcurementRequestORM
+from backend.models import ApprovalStepORM, AuditLogORM, ProcurementRequestORM
 from backend.services._normalizers import normalize_category, normalize_data_access, normalize_spend_type
+from backend.services.approval_engine import generate_approval_steps
 from backend.services.intake_agent import _save_request, chat
 from backend.services.risk_scorer import compute_residual_risk
 
@@ -30,7 +33,8 @@ def require_api_key(x_api_key: Annotated[Optional[str], Header()] = None) -> str
 # ── Status transition matrix ──────────────────────────────────────────────────
 
 _VALID_TRANSITIONS: dict[str, set[str]] = {
-    "pending":   {"approved", "rejected", "cancelled"},
+    "pending":   {"in_review", "approved", "rejected", "cancelled"},
+    "in_review": {"approved", "rejected", "cancelled"},
     "approved":  {"cancelled"},
     "rejected":  set(),
     "cancelled": set(),
@@ -84,9 +88,11 @@ class DirectCreateRequest(BaseModel):
 
 class StatusUpdate(BaseModel):
     status: str
-    # actor is derived from the API key in protected endpoints, not from body
-    # kept here for the unprotected /status endpoint signature compatibility
     actor: Optional[str] = None
+
+
+class ApplyFlowBody(BaseModel):
+    flow_id: str
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -132,6 +138,12 @@ def create_request_direct(body: DirectCreateRequest, db: Session = Depends(get_d
     req.residual_risk_score = residual_score
     db.commit()
     db.refresh(req)
+
+    generate_approval_steps(req, db)
+    req.status = "in_review"
+    db.commit()
+    db.refresh(req)
+
     flags = json.loads(req.policy_flags) if isinstance(req.policy_flags, str) else (req.policy_flags or [])
     return ChatResponse(
         reply=None,
@@ -152,6 +164,33 @@ def create_request_direct(body: DirectCreateRequest, db: Session = Depends(get_d
         requester_name=req.requester_name,
         department=req.department,
     )
+
+
+@router.post("/requests/{request_id}/apply-flow")
+def apply_flow(request_id: str, body: ApplyFlowBody, db: Session = Depends(get_db)):
+    req = db.get(ProcurementRequestORM, request_id)
+    if req is None:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if req.status not in ("pending", "in_review"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Cannot re-apply a flow to a request with status '{req.status}'",
+        )
+
+    # Wipe existing steps and generate new ones in a single transaction —
+    # no intermediate commit so a concurrent click cannot slip in between.
+    db.execute(sa_delete(ApprovalStepORM).where(ApprovalStepORM.request_id == request_id))
+    req.status = "in_review"
+
+    try:
+        generate_approval_steps(req, db, flow_id=body.flow_id)
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(e))
+
+    db.commit()
+    db.refresh(req)
+    return _serialize(req)
 
 
 @router.get("/requests")

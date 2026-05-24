@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, JSON, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import relationship
 
 from backend.database import Base
@@ -62,6 +62,7 @@ class ProcurementRequestORM(Base):
     updated_at = Column(DateTime, default=_now, onupdate=_now)
 
     audit_logs = relationship("AuditLogORM", back_populates="request", cascade="all, delete-orphan")
+    approval_steps = relationship("ApprovalStepORM", back_populates="request", cascade="all, delete-orphan")
 
 
 class AuditLogORM(Base):
@@ -77,3 +78,32 @@ class AuditLogORM(Base):
     timestamp = Column(DateTime, default=_now)
 
     request = relationship("ProcurementRequestORM", back_populates="audit_logs")
+
+
+class ApprovalStepORM(Base):
+    __tablename__ = "approval_steps"
+
+    id = Column(String, primary_key=True, default=_new_id)
+    request_id = Column(String, ForeignKey("procurement_requests.id"), nullable=False, index=True)
+
+    role = Column(String, nullable=False)
+    role_display_name = Column(String, nullable=False)
+
+    # 1 = sequential gate, 2 = parallel group, 3 = post-parallel
+    sequence_group = Column(Integer, nullable=False)
+
+    # pending → active → approved / rejected / escalated / skipped
+    status = Column(String, nullable=False, default="pending")
+
+    # Pre-generated at step creation time — never fetched on demand
+    ai_summary = Column(Text, nullable=True)
+
+    approver_name = Column(String, nullable=True)
+    decision_note = Column(Text, nullable=True)
+    decided_at = Column(DateTime, nullable=True)
+    escalated_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=_now)
+    updated_at = Column(DateTime, default=_now, onupdate=_now)
+
+    request = relationship("ProcurementRequestORM", back_populates="approval_steps")

@@ -38,13 +38,15 @@ REQUIRED FIELDS TO COLLECT:
 - category: Software | Hardware | Services | Marketing | Legal | Other
 - geography: Where will this be used? UK | EU | US | Global
 - data_access: none | internal | confidential | personal_data
+  - none: no company data involved (e.g. office furniture, catering)
+  - internal: company devices or tools that hold internal business data (e.g. laptops, servers, collaboration software with internal docs) — use this for hardware like laptops even if employees store work files on them
+  - confidential: supplier accesses IP, financial records, or trade secrets
+  - personal_data: supplier actively processes personal data about employees or customers as their core function (e.g. HR/payroll software, CRM, analytics platforms with customer records) — do NOT use for hardware purchases
 - business_justification: Why the business needs this — the problem it solves or value it delivers
 - requester_name: Full name of the person requesting
 - department: Their team or department
 
 OPTIONAL (ask only if relevant to the request):
-- supplier_website
-- cost_center
 - contract_expiry_date
 
 REPLACEMENT LOGIC (critical):
@@ -66,26 +68,41 @@ REAL-TIME POLICY ALERTS — surface these immediately when the relevant field is
 - geography = EU or Global AND data_access = personal_data → "Note: data leaving the EU — GDPR Article 46 transfer mechanisms apply."
 - category = Legal → "Note: Legal services engagements require Legal team review."
 
+INFERENCE RULES — apply silently, never mention them to the user, never show reasoning in your response:
+- "laptop", "laptops", "MacBook", "ThinkPad", "hardware purchase", "devices", "computers" → category = Hardware, data_access = internal. Do not ask about either. Do not tell the user you are inferring this.
+- "for our London/UK/British team" or company context implies UK → geography = UK.
+- "SaaS", "software", "platform", "tool", "app" → category = Software.
+- Quantity × unit price mentioned → spend_amount = that total. Do not ask again.
+- One-time physical purchases (laptops, equipment) → spend_type = one-time. Do not ask.
+- "campaign", "project", "project-based", "one-off", "agency fee", "retainer for a campaign", "single engagement" → spend_type = one-time, contract_duration = N/A. Do not ask about either.
+- "from the X department" or "I'm in X" → department = X. Do not ask for department.
+- "budget is confirmed", "budget confirmed", "already budgeted" → do not ask about budget or spend type again.
+- If geography spans multiple regions (e.g. UK, EU, and APAC) → geography = Global. Do not ask.
+
+Never expose internal field names or technical schema details (e.g. do not say "category", "data_access", "spend_type", "is_new_supplier", "Inferring X as Y"). Speak like a person, not a system — say "I'll note that" or "Got it" rather than revealing what field you are recording.
+
 CONVERSATION RULES:
+- On your FIRST response, if the user has not stated their name, always ask "Who's making this request?" (or a natural equivalent) as part of your opening reply — group it with other missing fields. Do not wait until the end to collect this.
+- NEVER ask the user to confirm or verify something they have already told you, either directly or by clear implication. If they said "laptops", do not ask "Is this a hardware purchase?" If they said "10 laptops at £1,200 each", do not ask "What is the total spend?"
 - Ask at most 3 missing fields at a time, grouped naturally.
 - service_description and business_justification are different things: service_description = what the supplier provides; business_justification = why the business needs it. Collect both separately.
-- Use context clues to infer where possible (e.g. "for our London team" → geography = UK).
 - Keep language natural and professional — never robotic or form-like.
 
 COMPLETION:
 When ALL required fields are collected, output a concise bullet summary in exactly this format:
 * Supplier name: [value]
-* Service description: [value]
+* Service description: [what the supplier provides in ≤10 words, e.g. "Business laptops for employee use" or "Cloud-based HR and payroll software"]
 * Spend amount: £[value] [qualifier e.g. per year]
 * Spend type: [value]
 * Category: [value]
 * Geography: [value]
 * Data access: [value]
-* Business justification: [value]
+* Business justification: [capture the actual reason given in the conversation — include what problem it solves, what it replaces, and why, in 1–2 sentences]
+* Contract duration: [Under 6 months | 6–12 months | 1–2 years | Ongoing | N/A for one-time]
 * Requester name: [value]
 * Department: [value]
-* Supplier website: [value or N/A]
-* Cost center: [value or N/A]
+
+Each bullet must be a single line. Do NOT include reasoning, explanations, or commentary inside any bullet value.
 
 Immediately after the summary (on the next line), output exactly: VIEW_OPTIONS_READY
 Do NOT ask for confirmation before this. Do NOT submit anything yourself."""
@@ -159,7 +176,6 @@ def _save_request(data: dict, session_id: str, db: Session) -> ProcurementReques
         security_certifications=data.get("security_certifications"),
         requester_name=data["requester_name"],
         department=data["department"],
-        cost_center=data.get("cost_center"),
         contract_expiry_date=data.get("contract_expiry_date"),
         risk_score=risk_score,
         risk_label=risk_label,
@@ -204,7 +220,7 @@ def chat(
             model=MODEL,
             messages=messages,
             temperature=0.3,
-            max_tokens=512,
+            max_tokens=1024,
         )
     except Exception:
         _clear_session(session_id)

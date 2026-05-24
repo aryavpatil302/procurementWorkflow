@@ -19,7 +19,7 @@ _SPEND_SCORE = [
 _DATA_ACCESS_SCORE = {
     "personal_data": 0.40,
     "confidential":  0.30,
-    "internal":      0.15,
+    "internal":      0.10,
     "none":          0.00,
 }
 

@@ -198,6 +198,10 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .qbtn.green:hover { background: #15803d; }
 .qbtn:disabled { opacity: .5; cursor: not-allowed; }
 .hidden { display: none !important; }
+.q-error { background: #FFF5F5; border: 1px solid #FC8181; border-radius: 6px;
+  color: #C53030; font-size: 12px; padding: 8px 12px; margin: 6px 0 0;
+  display: none; white-space: pre-line; }
+.q-error.visible { display: block; }
 </style>
 </head>
 <body>
@@ -212,7 +216,11 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
         <div class="hdr-sub">AI-powered intake</div>
       </div>
     </div>
-    <button id="new-btn" onclick="newSession()">+ New request</button>
+    <div style="display:flex;align-items:center;gap:0.5rem">
+      <a href="/dashboard.html" style="font-size:12px;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border-md);border-radius:6px;transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">⚙ Approval Workflows</a>
+      <a href="/dashboard.html#analytics" style="font-size:12px;color:var(--muted);text-decoration:none;padding:5px 10px;border:1px solid var(--border-md);border-radius:6px;transition:background .12s" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='transparent'">📊 Analytics</a>
+      <button id="new-btn" onclick="newSession()">+ New request</button>
+    </div>
   </header>
 
   <div id="msgs">
@@ -281,19 +289,13 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
           <div class="q-hint">E.g. A SaaS platform for project management, cloud infrastructure, email marketing automation</div>
           <textarea class="q-textarea" id="f-desc" placeholder="Describe what this supplier provides..." oninput="updateProgress()"></textarea>
         </div>
-        <div class="q-row">
-          <div class="q-field">
-            <label class="q-lbl">Supplier website <span class="opt">(optional)</span></label>
-            <input class="q-input" id="f-web" type="url" placeholder="https://supplier.com">
-          </div>
-          <div class="q-field">
-            <label class="q-lbl">Where will this be used?<span class="req">*</span></label>
-            <div class="rg col" id="rg-loc">
-              <div class="ro" onclick="pick(this,'loc','UK')"><div class="rd"></div>UK only</div>
-              <div class="ro" onclick="pick(this,'loc','EU')"><div class="rd"></div>EU</div>
-              <div class="ro" onclick="pick(this,'loc','US')"><div class="rd"></div>US</div>
-              <div class="ro" onclick="pick(this,'loc','Global')"><div class="rd"></div>Global</div>
-            </div>
+        <div class="q-field">
+          <label class="q-lbl">Where will this be used?<span class="req">*</span></label>
+          <div class="rg" id="rg-loc">
+            <div class="ro" onclick="pick(this,'loc','UK')"><div class="rd"></div>UK only</div>
+            <div class="ro" onclick="pick(this,'loc','EU')"><div class="rd"></div>EU</div>
+            <div class="ro" onclick="pick(this,'loc','US')"><div class="rd"></div>US</div>
+            <div class="ro" onclick="pick(this,'loc','Global')"><div class="rd"></div>Global</div>
           </div>
         </div>
         <div class="q-field">
@@ -341,23 +343,9 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
             <input class="q-input" id="f-rname" type="text" placeholder="First Last" oninput="updateProgress()">
           </div>
         </div>
-        <div class="q-row">
-          <div class="q-field">
-            <label class="q-lbl">Cost center <span class="opt">(optional)</span></label>
-            <input class="q-input" id="f-cc" type="text" placeholder="e.g. CC-1042">
-          </div>
-          <div class="q-field">
-            <label class="q-lbl">Contract expiry date <span class="opt">(optional)</span></label>
-            <input class="q-input" id="f-exp" type="date">
-          </div>
-        </div>
-        <div class="q-field" data-depth="standard">
-          <label class="q-lbl">Is this spend within your approved budget?<span class="req">*</span></label>
-          <div class="rg" id="rg-bud">
-            <div class="ro" onclick="pick(this,'bud','yes')"><div class="rd"></div>Yes, budgeted</div>
-            <div class="ro" onclick="pick(this,'bud','no')"><div class="rd"></div>No — needs approval</div>
-            <div class="ro" onclick="pick(this,'bud','partial')"><div class="rd"></div>Partially budgeted</div>
-          </div>
+        <div class="q-field">
+          <label class="q-lbl">Contract expiry date <span class="opt">(optional)</span></label>
+          <input class="q-input" id="f-exp" type="date">
         </div>
       </div>
 
@@ -390,14 +378,6 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
             <div class="co" onclick="tog(this,'certs','None required')"><div class="cb"></div>None required</div>
           </div>
         </div>
-        <div class="q-field" data-depth="standard">
-          <label class="q-lbl">Has legal or finance been consulted?<span class="req">*</span></label>
-          <div class="rg" id="rg-legal">
-            <div class="ro" onclick="pick(this,'legal','yes')"><div class="rd"></div>Yes</div>
-            <div class="ro" onclick="pick(this,'legal','no')"><div class="rd"></div>No</div>
-            <div class="ro" onclick="pick(this,'legal','not_required')"><div class="rd"></div>Not required</div>
-          </div>
-        </div>
         <div class="q-field">
           <label class="q-lbl">Business justification<span class="req">*</span></label>
           <div class="q-hint">Why does the business need this? What problem does it solve?</div>
@@ -411,6 +391,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
     </div><!-- q-body -->
 
+    <div id="q-error" class="q-error"></div>
     <div class="q-ftr">
       <button class="qbtn ghost hidden" id="q-back" onclick="prevStep()">← Back</button>
       <div class="q-prog-wrap" style="flex:1;justify-content:center;">
@@ -435,6 +416,35 @@ let qDepth = 'standard'; // 'basic' | 'standard' | 'deep_due_diligence'
 
 const STEP_LABELS = ['General', 'Commercial', 'Risk & Compliance'];
 
+const KNOWN_WEBSITES = {
+  'lenovo': 'https://www.lenovo.com',
+  'dell': 'https://www.dell.com',
+  'dell technologies': 'https://www.dell.com',
+  'apple': 'https://www.apple.com/business',
+  'apple business': 'https://www.apple.com/business',
+  'hp': 'https://www.hp.com',
+  'hp inc': 'https://www.hp.com',
+  'microsoft': 'https://www.microsoft.com',
+  'microsoft 365': 'https://www.microsoft.com/microsoft-365',
+  'google': 'https://workspace.google.com',
+  'google workspace': 'https://workspace.google.com',
+  'slack': 'https://slack.com',
+  'zoom': 'https://zoom.us',
+  'github': 'https://github.com',
+  'rippling': 'https://www.rippling.com',
+  'dentsu': 'https://www.dentsu.com',
+  'notion': 'https://www.notion.so',
+  'figma': 'https://www.figma.com',
+  'salesforce': 'https://www.salesforce.com',
+  'hubspot': 'https://www.hubspot.com',
+  'jira': 'https://www.atlassian.com/software/jira',
+  'atlassian': 'https://www.atlassian.com',
+  'linear': 'https://linear.app',
+  'asana': 'https://asana.com',
+  'monday.com': 'https://monday.com',
+  'clickup': 'https://clickup.com',
+};
+
 const TRUSTED = [
   { n:'Slack',            team:'Engineering', e:'💬', cats:['communication','software'] },
   { n:'Google Workspace', team:'IT',          e:'🔵', cats:['productivity','software'] },
@@ -456,8 +466,9 @@ function resolveDiscoveryCat(aiCat, supplierName) {
   if (s.includes('slack')||s.includes('zoom')||s.includes('teams')||s.includes('meet')) return 'communication';
   if (s.includes('github')||s.includes('gitlab')||s.includes('bitbucket')||s.includes('linear')||s.includes('jira')) return 'engineering';
   if (s.includes('salesforce')||s.includes('hubspot')||s.includes('pipedrive')||c==='crm') return 'crm';
+  if (s.includes('lenovo')||s.includes('dell')||s.includes('thinkpad')||s.includes('hp inc')||s.includes('apple mac')||s.includes('macbook')||c==='hardware') return 'hardware';
+  if (s.includes('dentsu')||s.includes('wpp')||s.includes('publicis')||s.includes('havas')||s.includes('ogilvy')||s.includes('mccann')||s.includes('bbdo')||s.includes('agency')) return 'agency';
   if (c==='marketing') return 'marketing';
-  if (c==='hardware') return 'hardware';
   if (c==='services') return 'services';
   if (c==='legal') return 'legal';
   if (c==='software') return 'software';
@@ -471,6 +482,7 @@ const ALTS = {
   crm:           [{n:'Pipedrive',v:'Pipedrive Inc.',d:'Sales CRM & pipeline management',e:'🔧'},{n:'Zoho CRM',v:'Zoho Corp.',d:'Customer relationship management',e:'🟡'},{n:'Freshsales',v:'Freshworks Inc.',d:'AI-powered CRM',e:'🌊'},{n:'Close',v:'Close Inc.',d:'Inside sales CRM',e:'📞'}],
   software:      [{n:'Monday.com',v:'Monday.com Ltd.',d:'Work management platform',e:'📊'},{n:'Asana',v:'Asana Inc.',d:'Team task & project tracking',e:'✅'},{n:'ClickUp',v:'ClickUp Inc.',d:'All-in-one workspace',e:'🚀'},{n:'Airtable',v:'Airtable Inc.',d:'Database-spreadsheet hybrid',e:'🗃️'}],
   marketing:     [{n:'Mailchimp',v:'Intuit Inc.',d:'Email marketing & automation',e:'🐒'},{n:'Brevo',v:'Brevo SAS',d:'Email marketing and CRM',e:'📧'},{n:'MailerLite',v:'MailerLite Ltd.',d:'Email automation',e:'✉️'},{n:'ActiveCampaign',v:'ActiveCampaign',d:'Marketing automation',e:'⚡'}],
+  agency:        [{n:'WPP / GroupM',v:'WPP plc',d:'Global media & campaign agency',e:'🌐'},{n:'Publicis Groupe',v:'Publicis Groupe SA',d:'Integrated creative & media agency',e:'🎯'},{n:'Havas',v:'Havas Group',d:'Global advertising & communications',e:'📢'},{n:'Ogilvy',v:'Ogilvy (WPP)',d:'Brand, PR & creative campaigns',e:'✏️'}],
   hardware:      [{n:'Dell Technologies',v:'Dell Inc.',d:'Business hardware & devices',e:'💻'},{n:'Apple Business',v:'Apple Inc.',d:'Mac, iPad & accessories',e:'🍎'},{n:'Lenovo',v:'Lenovo Group',d:'ThinkPad & business devices',e:'🖥️'},{n:'HP Inc.',v:'HP Inc.',d:'Business laptops & peripherals',e:'🖨️'}],
   services:      [{n:'Deloitte',v:'Deloitte LLP',d:'Professional services & consulting',e:'🏢'},{n:'Accenture',v:'Accenture plc',d:'Technology & management consulting',e:'🔷'},{n:'PwC',v:'PricewaterhouseCoopers',d:'Audit, consulting & advisory',e:'🏛️'},{n:'Cognizant',v:'Cognizant',d:'IT services & solutions',e:'⚙️'}],
   legal:         [{n:'Ironclad',v:'Ironclad Inc.',d:'Contract lifecycle management',e:'📜'},{n:'DocuSign',v:'DocuSign Inc.',d:'E-signatures & agreements',e:'✍️'},{n:'Clio',v:'Themis Solutions',d:'Legal matter management',e:'⚖️'},{n:'Lexion',v:'Lexion Inc.',d:'AI contract management',e:'📄'}],
@@ -515,7 +527,7 @@ async function sendMsg() {
     cs.exchanges++;
     if (data.is_complete) {
       if (data.reply) cs.parsed = parseFromSummary(data.reply);
-      cs.supplier = cs.parsed.supplier || cs.supplier;
+      cs.supplier = cs.supplier || cs.parsed.supplier;
       cs.cat = (cs.parsed.cat || cs.cat || 'software').toLowerCase();
       addDiscoveryCard();
     }
@@ -563,17 +575,16 @@ function parseFromSummary(text) {
     const m = text.match(new RegExp(label + '[:\\s]+([^\\n*•]+)', 'i'));
     return m ? m[1].trim().replace(/\*+$/, '').trim() : '';
   };
-  const supplier = get('supplier\\s*name') || cs.supplier;
+  const supplier = cs.supplier || get('supplier\\s*name');
   const service_description = get('service\\s*description');
   // Strip parenthetical clarifications like "(associated with the IT cost center)"
   const dept  = get('department').replace(/\s*\(.*?\)/g, '').trim();
   const rname = get('requester\\s*name').replace(/\s*\(.*?\)/g, '').trim();
   const justification = get('business\\s*justification');
-  const cc      = get('cost\\s*cent(?:er|re)').replace(/\s*\(.*?\)/g, '').trim();
   const website = get('supplier\\s*website');
   const geoRaw  = get('geography').trim();
-  const geoMap  = { uk:'UK', eu:'EU', us:'US', global:'Global' };
-  const geography = geoMap[geoRaw.toLowerCase()] || geoRaw || '';
+  const geoMap  = { uk:'UK', 'united kingdom':'UK', england:'UK', britain:'UK', eu:'EU', europe:'EU', european:'EU', us:'US', usa:'US', 'united states':'US', america:'US', global:'Global', worldwide:'Global', international:'Global', 'all regions':'Global' };
+  const geography = geoMap[geoRaw.toLowerCase()] || (geoRaw.toLowerCase().includes('global')||geoRaw.toLowerCase().includes('world') ? 'Global' : geoRaw.toLowerCase().includes('uk')||geoRaw.toLowerCase().includes('britain') ? 'UK' : geoRaw.toLowerCase().includes('eu')||geoRaw.toLowerCase().includes('europ') ? 'EU' : geoRaw) || '';
 
   const spendRaw   = get('spend\\s*amount');
   const spendMatch = spendRaw.match(/[\d,]+(\.\d+)?/);
@@ -596,7 +607,15 @@ function parseFromSummary(text) {
   // Infer whether supplier processes personal data from data access level
   const pd = da === 'personal_data' ? 'yes' : da === 'none' ? 'no' : 'unsure';
 
-  return { supplier, service_description, dept, rname, justification, cc, website, geography, spend, st, cat, da, isnew, pd };
+  const durRaw = get('contract\\s*duration').toLowerCase();
+  let dur = '';
+  if (durRaw.includes('n/a') || durRaw.includes('one-time') || durRaw.includes('one time')) dur = '';
+  else if (durRaw.includes('ongoing') || durRaw.includes('indefinite') || durRaw.includes('no fixed')) dur = 'Ongoing';
+  else if (durRaw.match(/1[\s\-–]+2\s*year/) || durRaw.includes('two year') || durRaw.includes('24 month') || durRaw.match(/\btwo\s+year/) || durRaw.match(/1\s*to\s*2\s*year/)) dur = '1–2 years';
+  else if (durRaw.match(/6[\s\-–]+12/) || durRaw.includes('6 month') || durRaw.includes('12 month') || durRaw.includes('one year') || durRaw.includes('1 year') || durRaw.includes('annual')) dur = '6–12 months';
+  else if (durRaw.includes('under') || durRaw.includes('less than') || durRaw.includes('short') || durRaw.match(/[1-5]\s*month/)) dur = 'Under 6 months';
+
+  return { supplier, service_description, dept, rname, justification, website, geography, spend, st, cat, da, isnew, pd, dur };
 }
 
 // ── Inline discovery card ──
@@ -722,9 +741,10 @@ function showQ() {
   document.getElementById('q-name').textContent = supplier || 'New Supplier';
   // service_description = what the supplier provides (distinct from why we need it)
   document.getElementById('f-desc').value = p.service_description || '';
-  if (p.website) document.getElementById('f-web').value = p.website;
-
-  const cat = p.cat || (cs.cat ? cs.cat.charAt(0).toUpperCase()+cs.cat.slice(1) : '');
+  // Category: use AI-parsed value, fall back to resolveDiscoveryCat (uses supplier name too)
+  const discCat = resolveDiscoveryCat(p.cat || cs.cat, supplier);
+  const discToCatLabel = { hardware:'Hardware', software:'Software', marketing:'Marketing', agency:'Marketing', services:'Services', legal:'Legal', design:'Software', engineering:'Software', communication:'Software', crm:'Software' };
+  const cat = p.cat || discToCatLabel[discCat] || (cs.cat ? cs.cat.charAt(0).toUpperCase()+cs.cat.slice(1) : '');
   if (cat) {
     const ro = [...document.querySelectorAll('#rg-cat .ro')].find(r=>r.textContent.trim()===cat);
     if (ro) pick(ro,'cat',cat);
@@ -742,11 +762,25 @@ function showQ() {
   if (p.spend) document.getElementById('f-spend').value = p.spend;
   if (p.dept)  document.getElementById('f-dept').value  = p.dept;
   if (p.rname) document.getElementById('f-rname').value = p.rname;
-  if (p.cc)    document.getElementById('f-cc').value    = p.cc;
   if (p.st) {
     const stLabel = { 'one-time':'One-time', 'recurring':'Recurring', 'subscription':'Subscription' }[p.st];
     const ro = [...document.querySelectorAll('#rg-st .ro')].find(r=>r.textContent.trim()===stLabel);
     if (ro) pick(ro,'st',p.st);
+  }
+  if (p.dur) {
+    const ro = [...document.querySelectorAll('#rg-dur .ro')].find(r=>r.textContent.trim()===p.dur);
+    if (ro) pick(ro,'dur',p.dur);
+    // Auto-derive contract expiry date from duration if not already set
+    const expInput = document.getElementById('f-exp');
+    if (!expInput.value) {
+      const monthsMap = { 'Under 6 months': 6, '6–12 months': 12, '1–2 years': 24 };
+      const months = monthsMap[p.dur];
+      if (months) {
+        const d = new Date();
+        d.setMonth(d.getMonth() + months);
+        expInput.value = d.toISOString().split('T')[0];
+      }
+    }
   }
 
   // ── Step 3 ──
@@ -784,6 +818,11 @@ function pick(el, key, val) {
   el.classList.add('sel');
   fd[key] = val;
   if (key==='cat') cs.cat = val.toLowerCase();
+  if (key==='st') {
+    const durField = document.querySelector('#rg-dur')?.closest('.q-field');
+    if (durField) durField.style.display = val === 'one-time' ? 'none' : '';
+    if (val === 'one-time') { fd.dur = null; document.querySelectorAll('#rg-dur .ro').forEach(r=>r.classList.remove('sel')); }
+  }
   updateProgress();
 }
 
@@ -807,14 +846,12 @@ function computeProgress() {
   } else if (step === 2) {
     chk(parseFloat(document.getElementById('f-spend').value) > 0);
     chk(!!fd.st);
-    if (depthVisible('standard')) chk(!!fd.dur);
+    if (depthVisible('standard') && fd.st !== 'one-time') chk(!!fd.dur);
     chk(!!document.getElementById('f-dept').value.trim());
     chk(!!document.getElementById('f-rname').value.trim());
-    if (depthVisible('standard')) chk(!!fd.bud);
   } else if (step === 3) {
     chk(!!fd.da);
     if (depthVisible('standard')) chk(!!fd.pd);
-    if (depthVisible('standard')) chk(!!fd.legal);
     chk(!!document.getElementById('f-just').value.trim());
   }
   return { filled, total };
@@ -845,35 +882,48 @@ function validate(s) {
   if (s===2) {
     if (!(parseFloat(document.getElementById('f-spend').value) > 0)) e.push('Please enter a valid spend amount');
     if (!fd.st) e.push('Please select a spend type');
-    if (depthVisible('standard') && !fd.dur) e.push('Please select a contract duration');
+    if (depthVisible('standard') && fd.st !== 'one-time' && !fd.dur) e.push('Please select a contract duration');
     if (!document.getElementById('f-dept').value.trim()) e.push('Department is required');
     if (!document.getElementById('f-rname').value.trim()) e.push('Your name is required');
-    if (depthVisible('standard') && !fd.bud) e.push('Please indicate if this spend is budgeted');
   }
   if (s===3) {
     if (!fd.da) e.push('Please select a data access level');
     if (depthVisible('standard') && !fd.pd) e.push('Please indicate if supplier will process personal data');
-    if (depthVisible('standard') && !fd.legal) e.push('Please indicate if legal/finance has been consulted');
     if (!document.getElementById('f-just').value.trim()) e.push('Business justification is required');
   }
   return e;
 }
 
+function showQError(msg) {
+  const el = document.getElementById('q-error');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 5000);
+}
+
+function clearQError() {
+  const el = document.getElementById('q-error');
+  if (el) el.classList.remove('visible');
+}
+
 function nextStep() {
   const errs = validate(step);
-  if (errs.length) { alert(errs.join('\n')); return; }
+  if (errs.length) { showQError(errs.join('\n')); return; }
+  clearQError();
   if (step < 3) { step++; renderStep(); }
 }
 function prevStep() { if(step>1){step--;renderStep();} }
 
 async function submitQ() {
   const errs = validate(3);
-  if (errs.length) { alert(errs.join('\n')); return; }
+  if (errs.length) { showQError(errs.join('\n')); return; }
+  clearQError();
   const btn = document.getElementById('q-sub');
   btn.textContent='Submitting...'; btn.disabled=true;
   const payload = {
     supplier_name: document.getElementById('f-sup').value.trim(),
-    supplier_website: document.getElementById('f-web').value.trim()||null,
+    supplier_website: null,
     service_description: document.getElementById('f-desc').value.trim()||null,
     spend_amount: parseFloat(document.getElementById('f-spend').value),
     spend_type: fd.st,
@@ -883,7 +933,6 @@ async function submitQ() {
     business_justification: document.getElementById('f-just').value.trim(),
     requester_name: document.getElementById('f-rname').value.trim(),
     department: document.getElementById('f-dept').value.trim(),
-    cost_center: document.getElementById('f-cc').value.trim()||null,
     contract_expiry_date: document.getElementById('f-exp').value||null,
     contract_duration: fd.dur||null,
     security_certifications: (fd.certs||[]).filter(c=>c!=='None required'),
@@ -899,7 +948,7 @@ async function submitQ() {
     showCC(data);
       fd={}; cs={supplier:'',cat:'',exchanges:0,parsed:{}};
   } catch(e) {
-    alert('Error: '+e.message);
+    showQError('Submission failed: ' + e.message);
     btn.textContent='Submit Request'; btn.disabled=false;
   }
 }
@@ -930,6 +979,9 @@ function showCC(data) {
       <div><div class="cc-lbl">Department</div><div class="cc-val">${data.department||'—'}</div></div>
     </div>
     ${flags.length?`<div class="cc-flags">${flags.map(f=>`<span class="cc-flag">⚠ ${f}</span>`).join('')}</div>`:''}
+    <div style="margin-top:12px">
+      <a href="dashboard.html?req=${data.request_id}" style="display:inline-block;background:#2563EB;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:8px 18px;border-radius:99px;text-decoration:none">Continue to approval →</a>
+    </div>
   </div>`;
   m.appendChild(d); m.scrollTop=m.scrollHeight;
 }
