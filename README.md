@@ -4,6 +4,14 @@ A working proof-of-concept for an intelligent procurement intake and approval or
 
 ---
 
+## Demos
+
+| AI Intake Agent | Custom Workflow Builder | Approval Orchestration |
+|---|---|---|
+| [![AI Intake](https://img.youtube.com/vi/79Zs1l1TxvA/maxresdefault.jpg)](https://www.youtube.com/watch?v=79Zs1l1TxvA) | [![Custom Workflow Builder](https://img.youtube.com/vi/lY636nzE_Wc/maxresdefault.jpg)](https://www.youtube.com/watch?v=lY636nzE_Wc) | [![Approval Orchestration](https://img.youtube.com/vi/WVoXOFQmJKM/maxresdefault.jpg)](https://www.youtube.com/watch?v=WVoXOFQmJKM) |
+
+---
+
 ## What it does
 
 **Intake** — An AI agent (Aria) guides employees through a new supplier request via natural conversation. It infers fields like category, geography, and spend type from context, surfaces real-time policy alerts, and produces a structured summary when all required information is collected.
