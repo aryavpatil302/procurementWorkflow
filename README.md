@@ -14,7 +14,7 @@ A working proof-of-concept for an intelligent procurement intake and approval or
 
 ## What it does
 
-**Intake** — An AI agent (Aria) guides employees through a new supplier request via natural conversation. It infers fields like category, geography, and spend type from context, surfaces real-time policy alerts, and produces a structured summary when all required information is collected.
+**Intake** — An AI agent guides employees through a new supplier request via natural conversation. It infers fields like category, geography, and spend type from context, surfaces real-time policy alerts, and produces a structured summary when all required information is collected.
 
 **Risk scoring** — Each request is automatically scored for inherent risk based on spend amount, data access level, supplier category, geography, and whether the supplier is new. Policy flags are raised where approvals or reviews are required.
 
